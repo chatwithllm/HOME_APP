@@ -1,9 +1,6 @@
 import { TopNav } from "@/components/top-nav";
 
 export function AppShell({
-  title: _title,
-  eyebrow: _eyebrow,
-  description: _description,
   children,
 }: {
   title: string;

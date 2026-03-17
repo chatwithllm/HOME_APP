@@ -91,3 +91,33 @@ Implementation notes:
 
 Next phase preview:
 - Phase 3 will implement the receipt ingestion API at `POST /api/receipts` and return `{ ok: true, receipt_id }`
+
+## Phase 3 — Receipt Ingestion API
+
+Status: Completed locally and verified.
+
+Objective:
+Implement the first receipt write path with a `POST /api/receipts` endpoint that can create a receipt row in PostgreSQL and return the inserted record id.
+
+What was built:
+- `app/api/receipts/route.ts`
+- `POST /api/receipts` endpoint
+- Empty-body-safe request parsing so the prompt's bare curl example works
+- Zod validation for optional receipt payload fields
+- Insert flow into the `receipts` table
+- JSON response in the required shape:
+  - `{ ok: true, receipt_id }`
+
+Validation completed:
+- `curl -X POST http://localhost:3001/api/receipts` ✅
+- Response returned `ok: true` with a created `receipt_id` ✅
+- `npm run lint` ✅
+
+Implementation notes:
+- The endpoint currently supports both an empty body and a structured JSON payload
+- Validation errors return `400` with issue details
+- Unexpected errors return `500` with an error message
+- This phase establishes the first live receipt insert path; richer ingestion/receipt detail workflows remain for later phases
+
+Next phase preview:
+- Phase 4 will build `/service-dashboard/receipts` with high-level receipt stats such as count, total spend, total tax, and distinct stores
