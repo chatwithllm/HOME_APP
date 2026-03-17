@@ -151,3 +151,36 @@ Implementation notes:
 
 Next phase preview:
 - Phase 5 will build the receipt detail page with metadata, items, image, raw OCR, structured JSON, and store profile controls
+
+## Phase 5 — Receipt Detail Page
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Build a usable receipt detail page with receipt metadata, item rows, image handling, raw OCR, structured JSON, and store profile controls.
+
+What was built:
+- Dynamic receipt detail route at `/service-dashboard/receipts/[id]`
+- Metadata display for a single receipt record
+- Receipt items table
+- Receipt image preview/path panel
+- Raw OCR section
+- Structured JSON section
+- `POST /api/store-profile` endpoint
+- Store type selector UI with save support
+- Dashboard usability improvement: recent receipts list with clickable `View receipt` links
+- Detail-page back navigation to return to the receipt dashboard
+
+Validation completed:
+- `http://localhost:3001/service-dashboard/receipts/1` loads ✅
+- `POST /api/store-profile` verified ✅
+- Dashboard receipt links open detail pages ✅
+- `npm run lint` ✅
+
+Implementation notes:
+- Detail pages currently depend on existing receipt ids in PostgreSQL
+- Image preview renders for HTTP/HTTPS/root-relative paths and falls back to a stored path note otherwise
+- The dashboard now exposes recent receipt links so Phase 5 is actually usable without manual URL editing
+
+Next phase preview:
+- Phase 6 will add currency conversion and INR display toggling
