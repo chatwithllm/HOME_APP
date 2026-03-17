@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createDb } from "@/db/client";
@@ -8,6 +8,7 @@ import { normalizeItemName } from "@/lib/normalize-item";
 const receiptItemActionSchema = z.object({
   receiptItemId: z.number().int().positive(),
   action: z.enum(["buy_again", "running_low", "watch"]),
+  force: z.boolean().optional(),
 });
 
 const actionToListName = {
@@ -46,12 +47,57 @@ export async function POST(request: Request) {
     const listName = actionToListName[payload.action];
     const normalizedName = normalizeItemName(item.description);
 
+    if (!payload.force) {
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+      const recentPurchases = await db.execute(sql`
+        select
+          ri.id as receipt_item_id,
+          ri.description,
+          r.store_name,
+          coalesce(r.receipt_date, r.created_at) as purchased_at
+        from receipt_items ri
+        join receipts r on r.id = ri.receipt_id
+        where coalesce(r.receipt_date, r.created_at) >= ${fourteenDaysAgo}
+        order by coalesce(r.receipt_date, r.created_at) desc
+        limit 200
+      `);
+
+      const duplicate = recentPurchases.rows.find((row) => {
+        const description = String((row as { description?: unknown }).description ?? "");
+        return normalizeItemName(description) === normalizedName;
+      }) as
+        | {
+            store_name?: string | null;
+            purchased_at?: string | Date | null;
+          }
+        | undefined;
+
+      if (duplicate) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Item was purchased recently. Check inventory and confirm to add it again.",
+            duplicate_purchase: true,
+            last_purchased_at: duplicate.purchased_at ?? null,
+            last_store_name: duplicate.store_name ?? null,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     let list = await db.query.shoppingLists.findFirst({
       where: and(eq(shoppingLists.name, listName), eq(shoppingLists.status, "open")),
     });
 
     if (!list) {
-      const createdList = await db.insert(shoppingLists).values({ name: listName }).returning({ id: shoppingLists.id, name: shoppingLists.name });
+      const createdList = await db
+        .insert(shoppingLists)
+        .values({ name: listName })
+        .returning({ id: shoppingLists.id, name: shoppingLists.name });
+
       list = { id: createdList[0].id, name: createdList[0].name, status: "open" };
     }
 

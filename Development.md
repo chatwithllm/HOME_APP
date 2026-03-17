@@ -289,3 +289,35 @@ Implementation notes:
 
 Next phase preview:
 - Phase 9 will add duplicate purchase detection with a 14-day window and conflict handling
+
+## Phase 9 — Duplicate Purchase Detection
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Protect shopping actions from re-adding items that were purchased too recently by checking a 14-day window and returning a conflict that requires explicit confirmation.
+
+What was built:
+- 14-day duplicate purchase detection in `POST /api/receipt-item/action`
+- `409 Conflict` response for recently purchased items
+- Force-confirm path so a second explicit action can still proceed
+- Receipt-item action UI updated to surface the duplicate-purchase confirmation state inline
+- Action area layout refinements after review:
+  - no secondary confirmation box
+  - centered success state text
+  - action text styled as floating controls without button background or border
+  - items table tightened to avoid wrapping headers and horizontal scrolling
+
+Validation completed:
+- Initial duplicate purchase action returns `409` ✅
+- Confirmed repeat action succeeds ✅
+- `npm run lint` ✅
+- UI confirmation state verified locally on receipt detail page ✅
+
+Implementation notes:
+- Duplicate detection currently checks recent purchase history by matching normalized item names against receipt items from the last 14 days
+- Conflict responses include recent purchase metadata for future richer confirmation UX
+- Confirmation currently happens via a second click on the highlighted action label
+
+Next phase preview:
+- Phase 10 will build the CLI receipt query tool
