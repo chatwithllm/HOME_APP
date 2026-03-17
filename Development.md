@@ -252,3 +252,40 @@ Implementation notes:
 
 Next phase preview:
 - Phase 8 will build shopping integration via `POST /api/receipt-item/action`
+
+## Phase 8 — Shopping Integration
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Add receipt-item actions that can feed a shopping workflow by normalizing item names, ensuring shopping lists exist, merging duplicates, and inserting new shopping plan items when needed.
+
+What was built:
+- `POST /api/receipt-item/action`
+- Supported actions:
+  - `buy_again`
+  - `running_low`
+  - `watch`
+- Item-name normalization utility in `lib/normalize-item.ts`
+- Automatic open-list creation for shopping actions
+- Duplicate merge behavior using normalized item names within the same shopping list
+- New shopping plan item insertion when no matching item exists
+- Receipt detail UI action buttons for each receipt item row
+- Button polish pass so action labels stay on one line and all three action buttons share the same size
+
+Validation completed:
+- End-to-end `buy_again` action test succeeded ✅
+- Repeating the same action merged into the existing shopping plan item ✅
+- Receipt detail page shows working action buttons ✅
+- `npm run lint` ✅
+
+Implementation notes:
+- Current action-to-list mapping is:
+  - `buy_again` → `Buy Again`
+  - `running_low` → `Running Low`
+  - `watch` → `Watch`
+- Item quantities merge when both the existing shopping entry and the incoming receipt item contain quantity values
+- Phase 8 currently focuses on the receipt-detail integration path; richer shopping-plan management remains for later phases
+
+Next phase preview:
+- Phase 9 will add duplicate purchase detection with a 14-day window and conflict handling
