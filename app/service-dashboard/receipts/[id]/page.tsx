@@ -94,19 +94,19 @@ export default async function ReceiptDetailPage({
       eyebrow="Detail"
       description="Metadata, items, receipt image, OCR output, and structured JSON for a single receipt record."
     >
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <Link
-            href="/service-dashboard/receipts"
-            className="inline-flex px-1 text-sm font-semibold text-[var(--accent-dark)] underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </Link>
+      <section className="space-y-4 sm:space-y-5">
+        <Link
+          href="/service-dashboard/receipts"
+          className="inline-flex px-1 text-sm font-semibold text-[var(--accent-dark)] underline-offset-4 hover:underline"
+        >
+          Back to dashboard
+        </Link>
 
+        <div className="flex justify-start sm:justify-end">
           <CurrencyToggle />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-12">
+        <div className="grid gap-5 sm:gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-7">
             <SectionCard title={`Receipt #${receipt.id}`} description={receipt.storeName || "Stored receipt record"}>
               <dl className="grid gap-4 sm:grid-cols-2">
@@ -159,39 +159,47 @@ export default async function ReceiptDetailPage({
               </dl>
             </SectionCard>
 
-            <SectionCard title="Items" description="Line items extracted for this receipt.">
+            <SectionCard
+              title="Items"
+              description="Line items extracted for this receipt."
+              className="lg:flex lg:min-h-[430px] lg:flex-1 lg:flex-col"
+            >
               {items.length ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border-separate border-spacing-y-2 text-sm">
-                    <thead>
-                      <tr className="text-left text-[var(--muted)]">
-                        <th className="w-[32px] whitespace-nowrap px-2 py-2">#</th>
-                        <th className="whitespace-nowrap px-2 py-2">Description</th>
-                        <th className="w-[44px] whitespace-nowrap px-2 py-2">Qty</th>
-                        <th className="w-[72px] whitespace-nowrap px-2 py-2">Unit price</th>
-                        <th className="w-[72px] whitespace-nowrap px-2 py-2">Line total</th>
-                        <th className="w-[176px] whitespace-nowrap px-2 py-2">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item, index) => (
-                        <tr key={item.id} className="rounded-[14px] bg-[var(--surface-soft)] text-[var(--text)]">
-                          <td className="px-2 py-3">{item.lineNumber ?? index + 1}</td>
-                          <td className="px-2 py-3 font-medium">{item.description}</td>
-                          <td className="px-2 py-3">{item.quantity ?? "—"}</td>
-                          <td className="px-2 py-3 whitespace-nowrap">
+                <div className="space-y-3 lg:flex lg:flex-1 lg:flex-col">
+                  {items.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 shadow-[0_8px_20px_rgba(67,40,24,0.06)]"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                        Item #{item.lineNumber ?? index + 1}
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-[var(--text)]">{item.description}</p>
+
+                      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Qty</dt>
+                          <dd className="mt-1 font-medium text-[var(--text)]">{item.quantity ?? "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Unit price</dt>
+                          <dd className="mt-1 font-medium text-[var(--text)]">
                             <CurrencyAmount amount={item.unitPrice} currency={receipt.currency} />
-                          </td>
-                          <td className="px-3 py-3">
+                          </dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Line total</dt>
+                          <dd className="mt-1 font-medium text-[var(--text)]">
                             <CurrencyAmount amount={item.lineTotal} currency={receipt.currency} />
-                          </td>
-                          <td className="w-[190px] px-3 py-3 align-top">
-                            <ReceiptItemActions receiptItemId={item.id} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="mt-4 rounded-[12px] bg-[rgba(255,241,191,0.35)] p-2">
+                        <ReceiptItemActions receiptItemId={item.id} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <p className="text-sm leading-6 text-[var(--muted)]">No receipt items saved for this receipt yet.</p>

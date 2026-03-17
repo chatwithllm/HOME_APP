@@ -56,31 +56,41 @@ export function ReceiptItemActions({ receiptItemId }: { receiptItemId: number })
   }
 
   return (
-    <div className="space-y-2">
-      <div className="grid gap-2">
-        {actions.map((action) => (
-          <button
-            key={action.value}
-            type="button"
-            onClick={() => void runAction(action.value)}
-            disabled={busyAction !== null}
-            className={`w-full px-1 py-1.5 text-[10px] font-bold whitespace-nowrap disabled:cursor-wait disabled:opacity-70 ${
-              pendingConfirmation === action.value
-                ? "text-[var(--accent-dark)]"
-                : "text-[var(--accent)] hover:text-[var(--accent-dark)]"
-            }`}
-          >
-            {busyAction === action.value
-              ? "Saving..."
-              : pendingConfirmation === action.value
-                ? `Purchased recently - ${action.label}`
-                : action.label}
-          </button>
-        ))}
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {actions.map((action) => {
+          const confirming = pendingConfirmation === action.value;
+
+          return (
+            <button
+              key={action.value}
+              type="button"
+              onClick={() => void runAction(action.value)}
+              disabled={busyAction !== null}
+              className={`min-h-[40px] rounded-[10px] border px-3 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-70 ${
+                confirming
+                  ? "border-[var(--accent)] bg-[rgba(139,46,29,0.12)] text-[var(--accent-dark)]"
+                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[rgba(255,241,191,0.7)] hover:text-[var(--accent-dark)]"
+              }`}
+            >
+              {busyAction === action.value
+                ? "Saving..."
+                : confirming
+                  ? `Confirm: ${action.label}`
+                  : action.label}
+            </button>
+          );
+        })}
       </div>
 
+      {pendingConfirmation ? (
+        <div className="rounded-[10px] bg-[rgba(139,46,29,0.08)] px-3 py-2 text-xs font-medium leading-5 text-[var(--accent-dark)]">
+          Purchased recently — tap the same action again to confirm.
+        </div>
+      ) : null}
+
       {status && !pendingConfirmation ? (
-        <div className="px-1 py-1.5 text-center text-[10px] font-bold leading-5 text-[var(--muted)]">
+        <div className="rounded-[10px] bg-[rgba(255,241,191,0.45)] px-3 py-2 text-center text-xs font-medium leading-5 text-[var(--muted)]">
           {status}
         </div>
       ) : null}

@@ -196,7 +196,7 @@ export default async function ReceiptQueryPage({
       description="The query surface for jumping through time, stores, and eventually item-level receipt history without writing SQL like a gremlin."
     >
       <section className="space-y-6">
-        <div className="flex justify-end">
+        <div className="flex justify-start sm:justify-end">
           <CurrencyToggle />
         </div>
 

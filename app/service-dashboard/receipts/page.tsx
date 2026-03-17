@@ -112,7 +112,7 @@ export default async function ReceiptsDashboardPage() {
       description="Primary analytics surface for receipt activity, store behavior, spend trends, and later shopping signals once the database layer is wired in."
     >
       <section className="space-y-6">
-        <div className="flex justify-end">
+        <div className="flex justify-start sm:justify-end">
           <CurrencyToggle />
         </div>
 
