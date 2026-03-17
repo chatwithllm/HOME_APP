@@ -121,3 +121,33 @@ Implementation notes:
 
 Next phase preview:
 - Phase 4 will build `/service-dashboard/receipts` with high-level receipt stats such as count, total spend, total tax, and distinct stores
+
+## Phase 4 — Receipt Dashboard
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Build the receipt dashboard at `/service-dashboard/receipts` with high-level KPIs backed by PostgreSQL instead of placeholder values.
+
+What was built:
+- Live dashboard query for:
+  - receipt count
+  - total spend
+  - total tax
+  - distinct stores
+- Empty-state-safe rendering when the database has no receipt rows
+- Simplified dashboard layout after review by removing the extra right-side status card
+- KPI cards now use the full content width
+
+Validation completed:
+- `npm run lint` ✅
+- `/service-dashboard/receipts` loads locally at `http://localhost:3001` ✅
+- KPI cards render with live aggregate values or a clean zero-state ✅
+
+Implementation notes:
+- Aggregates are queried directly from PostgreSQL at page render time
+- Currency values are formatted in USD for the current dashboard view
+- This phase focuses only on the high-level KPI summary required by the prompt; deeper receipt drill-down comes later
+
+Next phase preview:
+- Phase 5 will build the receipt detail page with metadata, items, image, raw OCR, structured JSON, and store profile controls
