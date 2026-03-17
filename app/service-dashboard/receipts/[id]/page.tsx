@@ -165,27 +165,27 @@ export default async function ReceiptDetailPage({
                   <table className="min-w-full border-separate border-spacing-y-2 text-sm">
                     <thead>
                       <tr className="text-left text-[var(--muted)]">
-                        <th className="px-3 py-2">#</th>
-                        <th className="px-3 py-2">Description</th>
-                        <th className="px-3 py-2">Qty</th>
-                        <th className="px-3 py-2">Unit price</th>
-                        <th className="px-3 py-2">Line total</th>
-                        <th className="px-3 py-2">Actions</th>
+                        <th className="w-[32px] whitespace-nowrap px-2 py-2">#</th>
+                        <th className="whitespace-nowrap px-2 py-2">Description</th>
+                        <th className="w-[44px] whitespace-nowrap px-2 py-2">Qty</th>
+                        <th className="w-[72px] whitespace-nowrap px-2 py-2">Unit price</th>
+                        <th className="w-[72px] whitespace-nowrap px-2 py-2">Line total</th>
+                        <th className="w-[176px] whitespace-nowrap px-2 py-2">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {items.map((item, index) => (
                         <tr key={item.id} className="rounded-[14px] bg-[var(--surface-soft)] text-[var(--text)]">
-                          <td className="px-3 py-3">{item.lineNumber ?? index + 1}</td>
-                          <td className="px-3 py-3 font-medium">{item.description}</td>
-                          <td className="px-3 py-3">{item.quantity ?? "—"}</td>
-                          <td className="px-3 py-3">
+                          <td className="px-2 py-3">{item.lineNumber ?? index + 1}</td>
+                          <td className="px-2 py-3 font-medium">{item.description}</td>
+                          <td className="px-2 py-3">{item.quantity ?? "—"}</td>
+                          <td className="px-2 py-3 whitespace-nowrap">
                             <CurrencyAmount amount={item.unitPrice} currency={receipt.currency} />
                           </td>
                           <td className="px-3 py-3">
                             <CurrencyAmount amount={item.lineTotal} currency={receipt.currency} />
                           </td>
-                          <td className="px-3 py-3">
+                          <td className="w-[190px] px-3 py-3 align-top">
                             <ReceiptItemActions receiptItemId={item.id} />
                           </td>
                         </tr>
