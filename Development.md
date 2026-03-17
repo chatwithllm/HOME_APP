@@ -321,3 +321,36 @@ Implementation notes:
 
 Next phase preview:
 - Phase 10 will build the CLI receipt query tool
+
+## Phase 10 — CLI Query Tool
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Provide a scriptable CLI path for querying receipts by recent count, day, month, year, or store without relying on the web UI.
+
+What was built:
+- `scripts/receipt_query.ts`
+- Supported commands:
+  - `last 10`
+  - `day YYYY-MM-DD`
+  - `month YYYY-MM`
+  - `year YYYY`
+  - `store Costco`
+- `--json` output mode
+- Plain text output mode
+- Input validation for supported date formats
+- Quiet dotenv loading so CLI output stays clean
+
+Validation completed:
+- `npx tsx scripts/receipt_query.ts last 10 --json` ✅
+- CLI returns receipt rows from PostgreSQL ✅
+- `npm run lint` ✅
+
+Implementation notes:
+- The CLI uses the same PostgreSQL data source as the web application
+- Store queries currently use store-name matching
+- Date queries operate on receipt dates, with output falling back to created time where needed for display
+
+Phase summary:
+- Core phased build from Phase 1 through Phase 10 is now implemented
