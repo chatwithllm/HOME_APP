@@ -1,16 +1,9 @@
 import Link from "next/link";
 import { desc, sql } from "drizzle-orm";
+import { CurrencyAmount, CurrencyToggle } from "@/components/currency-preferences";
 import { AppShell, InsightCard, SectionCard } from "@/components/shell";
 import { createDb } from "@/db/client";
 import { receipts } from "@/db/schema";
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(value);
-}
 
 function formatReceiptDate(value: Date | null, fallbackCreatedAt: Date) {
   const target = value ?? fallbackCreatedAt;
@@ -119,6 +112,10 @@ export default async function ReceiptsDashboardPage() {
       description="Primary analytics surface for receipt activity, store behavior, spend trends, and later shopping signals once the database layer is wired in."
     >
       <section className="space-y-6">
+        <div className="flex justify-end">
+          <CurrencyToggle />
+        </div>
+
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           <InsightCard
             title="Receipt count"
@@ -127,12 +124,12 @@ export default async function ReceiptsDashboardPage() {
           />
           <InsightCard
             title="Total spend"
-            value={formatCurrency(stats.totalSpend)}
+            value={<CurrencyAmount amount={stats.totalSpend} currency="USD" />}
             detail="Sum of receipt totals across all stored receipts."
           />
           <InsightCard
             title="Total tax"
-            value={formatCurrency(stats.totalTax)}
+            value={<CurrencyAmount amount={stats.totalTax} currency="USD" />}
             detail="Aggregate tax captured from stored receipts."
           />
           <InsightCard
@@ -161,7 +158,9 @@ export default async function ReceiptsDashboardPage() {
                       <td className="rounded-l-[14px] px-3 py-3 font-semibold">#{receipt.id}</td>
                       <td className="px-3 py-3">{receipt.storeName || "—"}</td>
                       <td className="px-3 py-3">{formatReceiptDate(receipt.receiptDate, receipt.createdAt)}</td>
-                      <td className="px-3 py-3">{formatCurrency(receipt.total)}</td>
+                      <td className="px-3 py-3">
+                        <CurrencyAmount amount={receipt.total} currency={receipt.currency} />
+                      </td>
                       <td className="rounded-r-[14px] px-3 py-3">
                         <Link
                           href={`/service-dashboard/receipts/${receipt.id}`}
@@ -176,7 +175,9 @@ export default async function ReceiptsDashboardPage() {
               </table>
             </div>
           ) : (
-            <p className="text-sm leading-6 text-[var(--muted)]">No receipts are stored yet, so there is nothing to open. Once receipts exist, links will appear here.</p>
+            <p className="text-sm leading-6 text-[var(--muted)]">
+              No receipts are stored yet, so there is nothing to open. Once receipts exist, links will appear here.
+            </p>
           )}
         </SectionCard>
       </section>
