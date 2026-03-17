@@ -213,3 +213,42 @@ Implementation notes:
 
 Next phase preview:
 - Phase 7 will build the receipt query page with quick filters and manual date formats
+
+## Phase 7 — Receipt Query Page
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Build a usable receipt query page with quick filters and manual date-format searches so receipt lookup does not depend on raw SQL or manual URL guessing.
+
+What was built:
+- Working `/service-dashboard/receipt-query` page
+- Quick filters for:
+  - Last 10
+  - Today
+  - This month
+  - This year
+  - Costco
+  - Amazon
+  - Walmart
+- Manual input support for:
+  - `YYYY-MM-DD`
+  - `YYYY-MM`
+  - `YYYY`
+- Query result table with clickable `View receipt` links
+- Currency toggle support in query results
+- Query validation feedback for invalid manual date formats
+
+Validation completed:
+- `http://localhost:3001/service-dashboard/receipt-query?preset=last-10` loads ✅
+- Quick filters return results locally ✅
+- Manual date parsing works for the supported formats ✅
+- `npm run lint` ✅
+
+Implementation notes:
+- Query results currently order by receipt date and fallback to created time when needed
+- Manual entry is intentionally restricted to the prompt’s supported date formats
+- Merchant quick filters use store-name matching for Costco, Amazon, and Walmart
+
+Next phase preview:
+- Phase 8 will build shopping integration via `POST /api/receipt-item/action`
