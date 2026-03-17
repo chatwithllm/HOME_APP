@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CurrencyAmount, CurrencyToggle } from "@/components/currency-preferences";
+import { ReceiptItemActions } from "@/components/receipt-item-actions";
 import { AppShell, SectionCard } from "@/components/shell";
 import { StoreTypeSelector } from "@/components/store-type-selector";
 import { createDb } from "@/db/client";
@@ -169,6 +170,7 @@ export default async function ReceiptDetailPage({
                         <th className="px-3 py-2">Qty</th>
                         <th className="px-3 py-2">Unit price</th>
                         <th className="px-3 py-2">Line total</th>
+                        <th className="px-3 py-2">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -182,6 +184,9 @@ export default async function ReceiptDetailPage({
                           </td>
                           <td className="px-3 py-3">
                             <CurrencyAmount amount={item.lineTotal} currency={receipt.currency} />
+                          </td>
+                          <td className="px-3 py-3">
+                            <ReceiptItemActions receiptItemId={item.id} />
                           </td>
                         </tr>
                       ))}
