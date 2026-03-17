@@ -184,3 +184,32 @@ Implementation notes:
 
 Next phase preview:
 - Phase 6 will add currency conversion and INR display toggling
+
+## Phase 6 — Currency Conversion
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Add a USD/INR display toggle with local preference persistence so receipt totals can be viewed in INR without changing the underlying stored currency values.
+
+What was built:
+- Shared currency utility in `lib/currency.ts`
+- Client-side currency preference state with localStorage persistence
+- Reusable USD/INR toggle component
+- Reusable currency amount display component
+- Toggle integrated into the receipt dashboard and receipt detail page
+- INR conversion applied to dashboard totals, recent receipt totals, receipt totals, and receipt item amounts
+
+Validation completed:
+- Dashboard loads locally ✅
+- Receipt detail page loads locally ✅
+- `npm run lint` ✅
+- Currency preference persists via localStorage ✅
+
+Implementation notes:
+- Phase 6 currently converts USD values to INR for presentation only; stored database values remain unchanged
+- The toggle defaults to USD and remembers the last selected mode in localStorage
+- Existing non-USD values continue to render in their original currency
+
+Next phase preview:
+- Phase 7 will build the receipt query page with quick filters and manual date formats

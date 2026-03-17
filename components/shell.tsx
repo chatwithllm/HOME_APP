@@ -1,3 +1,4 @@
+import { CurrencyPreferencesProvider } from "@/components/currency-preferences";
 import { TopNav } from "@/components/top-nav";
 
 export function AppShell({
@@ -9,12 +10,14 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen px-5 py-6 text-[var(--text)] sm:px-8 lg:px-10">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
-        <TopNav />
-        {children}
-      </div>
-    </main>
+    <CurrencyPreferencesProvider>
+      <main className="min-h-screen px-5 py-6 text-[var(--text)] sm:px-8 lg:px-10">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
+          <TopNav />
+          {children}
+        </div>
+      </main>
+    </CurrencyPreferencesProvider>
   );
 }
 
@@ -24,7 +27,7 @@ export function InsightCard({
   detail,
 }: {
   title: string;
-  value: string;
+  value: React.ReactNode;
   detail: string;
 }) {
   return (
