@@ -70,6 +70,14 @@ What was built:
   - shopping sync event list lookups
 - Unique protection for `shopping_recommendation_ignores.normalized_name`
 - `db:test` script wiring in `package.json`
+- Homepage cleanup and route-card simplification after review iterations
+- New top navigation treatment using existing app colors only, with these labels:
+  - Dashboard
+  - Receipt Queries
+  - Shopping
+  - Home Assistant
+  - Ideas
+- Subpage return path via a separate `Home` button outside the 5-value nav set
 
 Validation completed:
 - Database schema files present and wired for PostgreSQL/Drizzle ✅
