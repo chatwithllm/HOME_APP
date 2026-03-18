@@ -667,3 +667,50 @@ Implementation notes:
 
 Next phase preview:
 - Phase 18 will improve search, filters, and query UX so receipt lookup becomes more practical and less dependent on preset views
+
+## Current status after Phase 18
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+
+Pending next:
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+
+## Phase 18 — Search, Filters, and Query UX Upgrade
+
+Status: Completed and verified locally.
+
+Objective:
+Improve receipt lookup so querying by date, store, item text, and totals becomes more practical than relying on preset-only views.
+
+What was built:
+- Reworked `app/service-dashboard/receipt-query/page.tsx` into a richer advanced query surface
+- Added date filter input with support for `YYYY-MM-DD`, `YYYY-MM`, and `YYYY`
+- Added store text filter
+- Added item text filter that searches through `receipt_items`
+- Added min-total and max-total filters
+- Added clearer combined query labeling and a clear-query action
+- Preserved sortable result views while making the query form more useful for real lookup tasks
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- Manual local review confirmed the upgraded query experience looks good ✅
+
+Implementation notes:
+- Item-text search now works through receipt-item existence checks instead of only receipt-level fields
+- The query page now supports combined filters in a single flow instead of splitting “quick” and “manual” into a narrower experience
+- This phase focused on practical retrieval UX, not analytics or recommendations yet
+
+Next phase preview:
+- Phase 19 will improve shopping workflow ergonomics so planning items, buy-again actions, and duplicate handling feel more like a system and less like a bucket
