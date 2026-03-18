@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CurrencyAmount, CurrencyToggle } from "@/components/currency-preferences";
 import { ReceiptItemActions } from "@/components/receipt-item-actions";
+import { ReceiptItemEditor } from "@/components/receipt-item-editor";
+import { ReceiptMetadataEditor } from "@/components/receipt-metadata-editor";
 import { AppShell, SectionCard } from "@/components/shell";
 import { StoreTypeSelector } from "@/components/store-type-selector";
 import { createDb } from "@/db/client";
@@ -152,6 +154,22 @@ export default async function ReceiptDetailPage({
                 </div>
               </div>
 
+              <div className="mt-6">
+                <ReceiptMetadataEditor
+                  receiptId={receipt.id}
+                  initialValues={{
+                    storeName: receipt.storeName ?? "",
+                    receiptDate: receipt.receiptDate ? new Date(receipt.receiptDate).toISOString().slice(0, 10) : "",
+                    receiptTime: receipt.receiptTime ?? "",
+                    paymentMethod: receipt.paymentMethod ?? "",
+                    subtotal: receipt.subtotal?.toString() ?? "",
+                    tax: receipt.tax?.toString() ?? "",
+                    total: receipt.total?.toString() ?? "",
+                    notes: receipt.notes ?? "",
+                  }}
+                />
+              </div>
+
               <dl className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
                   <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">Receipt date</dt>
@@ -262,7 +280,16 @@ export default async function ReceiptDetailPage({
                         </div>
                       </div>
 
-                      <div className="mt-3 rounded-[12px] bg-[rgba(255,241,191,0.35)] p-2">
+                      <div className="mt-3 space-y-2 rounded-[12px] bg-[rgba(255,241,191,0.35)] p-2">
+                        <ReceiptItemEditor
+                          receiptItemId={item.id}
+                          initialValues={{
+                            description: item.description,
+                            quantity: item.quantity?.toString() ?? "",
+                            unitPrice: item.unitPrice?.toString() ?? "",
+                            lineTotal: item.lineTotal?.toString() ?? "",
+                          }}
+                        />
                         <ReceiptItemActions receiptItemId={item.id} />
                       </div>
                     </div>

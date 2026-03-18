@@ -572,3 +572,51 @@ Implementation notes:
 
 Next phase preview:
 - Phase 16 will add receipt edit and correction tools so parser mistakes can be fixed from the UI instead of living forever in silent embarrassment
+
+## Current status after Phase 16
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+
+Pending next:
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+
+## Phase 16 — Receipt Edit / Correction Tools
+
+Status: Completed and verified locally.
+
+Objective:
+Add direct correction tools to the receipt detail experience so bad parser output can be fixed from the UI without database surgery.
+
+What was built:
+- Added `app/api/receipts/[id]/route.ts` for receipt metadata updates
+- Added `app/api/receipt-items/[id]/route.ts` for line-item updates
+- Added `components/receipt-metadata-editor.tsx` for editing receipt-level fields
+- Added `components/receipt-item-editor.tsx` for editing line-item fields
+- Integrated both editors into `app/service-dashboard/receipts/[id]/page.tsx`
+- Enabled editable correction flow for receipt metadata, item descriptions, quantities, unit prices, and line totals
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- Local receipt detail page loaded successfully ✅
+- Local verification confirmed `Edit receipt` and `Edit item` controls render on receipt detail pages ✅
+- Manual local check confirmed the first edit flow looks good ✅
+
+Implementation notes:
+- Receipt detail is no longer read-only for common correction tasks
+- Metadata edits and line-item edits are handled through separate focused PATCH routes
+- The first correction flow is intentionally pragmatic and UI-driven rather than overengineered
+
+Next phase preview:
+- Phase 17 will improve receipt ingestion so better validation and richer structured payload handling reduce the need for corrections upstream
