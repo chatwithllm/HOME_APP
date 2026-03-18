@@ -714,3 +714,48 @@ Implementation notes:
 
 Next phase preview:
 - Phase 19 will improve shopping workflow ergonomics so planning items, buy-again actions, and duplicate handling feel more like a system and less like a bucket
+
+## Current status after Phase 19
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+
+Pending next:
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+
+## Phase 19 — Shopping Workflow v2
+
+Status: Completed and verified locally.
+
+Objective:
+Turn the shopping workflow into a more usable planning surface so list items can be reviewed and adjusted instead of just accumulated.
+
+What was built:
+- Added `app/api/shopping-plan-items/[id]/route.ts` for shopping-plan item updates
+- Added `components/shopping-plan-item-editor.tsx` for editing item-level planning fields
+- Reworked `app/service-dashboard/shopping-plan/page.tsx` to show actual shopping lists and planned items instead of placeholder content
+- Surfaced editable planning controls for expected quantity, priority, status, preferred store, and notes
+- Improved the shopping page so merged planning items are visible in a coherent workflow surface rather than hidden behind receipt-action side effects
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- Manual local review confirmed the upgraded shopping workflow looks good ✅
+
+Implementation notes:
+- Shopping Plan is now a real data-backed workflow page, not a roadmap placeholder
+- This phase focused on plan usability and editability rather than recommendation intelligence
+- The workflow is now in a much better position for later purchase-intelligence features to build on top
+
+Next phase preview:
+- Phase 20 will add purchase intelligence and recommendations so the app can suggest buy-again patterns and surface more useful planning signals automatically
