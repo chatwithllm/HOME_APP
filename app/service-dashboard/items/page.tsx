@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { CurrencyAmount, CurrencyToggle } from "@/components/currency-preferences";
 import { ReceiptItemActions } from "@/components/receipt-item-actions";
 import { AppShell, SectionCard } from "@/components/shell";
 import { createDb } from "@/db/client";
+import { receiptItems, receipts } from "@/db/schema";
+import { normalizeItemName } from "@/lib/normalize-item";
+import { buildInferredQuantityDetailsMap } from "@/lib/receipt-item-quantity";
 
 function formatDate(value: string | Date | null | undefined) {
   if (!value) {
@@ -31,6 +34,7 @@ type ItemLedgerRow = {
   lastStoreName: string | null;
   lastPurchasedAt: string;
   latestQuantity: number | null;
+  latestQuantitySource: "explicit" | "duplicate_lines" | "costco_default" | "unresolved";
   latestUnitPrice: number;
   latestLineTotal: number;
   currency: string;
@@ -40,6 +44,28 @@ type ItemLedgerRow = {
   averageUnitPrice: number | null;
 };
 
+type BaseLedgerRow = {
+  receiptItemId: number;
+  receiptId: number;
+  itemName: string;
+  itemKey: string;
+  quantity: number | null;
+  unitPrice: number | null;
+  lineTotal: number | null;
+  currency: string;
+  storeName: string | null;
+  purchasedAt: Date;
+};
+
+function toNumber(value: unknown) {
+  if (value == null) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 async function getStoreOptions() {
   if (!process.env.DATABASE_URL) {
     return [] as string[];
@@ -48,14 +74,16 @@ async function getStoreOptions() {
   const { db, pool } = createDb();
 
   try {
-    const result = await db.execute(sql`
-      select distinct trim(store_name) as store_name
-      from receipts
-      where trim(coalesce(store_name, '')) <> ''
-      order by trim(store_name)
-    `);
+    const result = await db.query.receipts.findMany({
+      columns: {
+        storeName: true,
+      },
+      orderBy: [desc(receipts.storeName)],
+    });
 
-    return result.rows.map((row) => String(row.store_name));
+    return [...new Set(result.map((row) => row.storeName?.trim()).filter((value): value is string => Boolean(value)))].sort(
+      (a, b) => a.localeCompare(b),
+    );
   } finally {
     await pool.end();
   }
@@ -66,84 +94,174 @@ async function getItems(searchParams: { q?: string; store?: string }) {
     return [] as ItemLedgerRow[];
   }
 
-  const q = searchParams.q?.trim() ?? "";
-  const store = searchParams.store?.trim() ?? "";
+  const q = searchParams.q?.trim().toLowerCase() ?? "";
+  const storeFilter = searchParams.store?.trim().toLowerCase() ?? "";
   const { db, pool } = createDb();
 
   try {
-    const result = await db.execute(sql`
-      with base as (
-        select
-          ri.id as receipt_item_id,
-          r.id as receipt_id,
-          trim(ri.description) as item_name,
-          lower(trim(ri.description)) as item_key,
-          ri.quantity,
-          ri.unit_price,
-          ri.line_total,
-          r.currency,
-          r.store_name,
-          coalesce(r.receipt_date::timestamp, r.created_at) as purchased_at
-        from receipt_items ri
-        join receipts r on r.id = ri.receipt_id
-        where trim(coalesce(ri.description, '')) <> ''
-      ),
-      aggregate_rows as (
-        select
-          item_key,
-          count(*)::int as purchase_count,
-          count(distinct coalesce(store_name, 'Unknown'))::int as store_count,
-          string_agg(distinct coalesce(store_name, 'Unknown'), ', ' order by coalesce(store_name, 'Unknown')) as stores,
-          avg(unit_price) as average_unit_price
-        from base
-        group by item_key
-      ),
-      latest_rows as (
-        select
-          base.*,
-          row_number() over (partition by item_key order by purchased_at desc, receipt_item_id desc) as rn
-        from base
-      )
-      select
-        latest_rows.item_key,
-        latest_rows.item_name,
-        latest_rows.receipt_item_id as latest_receipt_item_id,
-        latest_rows.receipt_id as latest_receipt_id,
-        latest_rows.store_name as last_store_name,
-        latest_rows.purchased_at as last_purchased_at,
-        latest_rows.quantity as latest_quantity,
-        latest_rows.unit_price as latest_unit_price,
-        latest_rows.line_total as latest_line_total,
-        latest_rows.currency,
-        aggregate_rows.purchase_count,
-        aggregate_rows.stores,
-        aggregate_rows.store_count,
-        aggregate_rows.average_unit_price
-      from latest_rows
-      join aggregate_rows on aggregate_rows.item_key = latest_rows.item_key
-      where latest_rows.rn = 1
-        and (${q} = '' or latest_rows.item_name ilike ${`%${q}%`} or aggregate_rows.stores ilike ${`%${q}%`})
-        and (${store} = '' or coalesce(latest_rows.store_name, '') ilike ${`%${store}%`} or aggregate_rows.stores ilike ${`%${store}%`})
-      order by latest_rows.purchased_at desc, latest_rows.item_name asc
-      limit 250
-    `);
+    const joinedRows = await db
+      .select({
+        receiptItemId: receiptItems.id,
+        receiptId: receiptItems.receiptId,
+        itemName: receiptItems.description,
+        quantity: receiptItems.quantity,
+        unitPrice: receiptItems.unitPrice,
+        lineTotal: receiptItems.lineTotal,
+        currency: receipts.currency,
+        storeName: receipts.storeName,
+        purchasedAt: receipts.receiptDate,
+        createdAt: receipts.createdAt,
+      })
+      .from(receiptItems)
+      .innerJoin(receipts, eq(receipts.id, receiptItems.receiptId));
 
-    return result.rows.map((row) => ({
-      itemKey: String(row.item_key),
-      itemName: String(row.item_name),
-      latestReceiptItemId: Number(row.latest_receipt_item_id),
-      latestReceiptId: Number(row.latest_receipt_id),
-      lastStoreName: row.last_store_name ? String(row.last_store_name) : null,
-      lastPurchasedAt: String(row.last_purchased_at),
-      latestQuantity: row.latest_quantity == null ? null : Number(row.latest_quantity),
-      latestUnitPrice: Number(row.latest_unit_price ?? 0),
-      latestLineTotal: Number(row.latest_line_total ?? 0),
-      currency: String(row.currency ?? "USD"),
-      purchaseCount: Number(row.purchase_count ?? 0),
-      stores: row.stores ? String(row.stores) : null,
-      storeCount: Number(row.store_count ?? 0),
-      averageUnitPrice: row.average_unit_price == null ? null : Number(row.average_unit_price),
-    }));
+    const baseRows: BaseLedgerRow[] = joinedRows
+      .map((row) => {
+        const itemName = row.itemName.trim();
+        const itemKey = normalizeItemName(itemName);
+        const purchasedAt = row.purchasedAt ?? row.createdAt;
+
+        return {
+          receiptItemId: row.receiptItemId,
+          receiptId: row.receiptId,
+          itemName,
+          itemKey,
+          quantity: row.quantity == null ? null : Number(row.quantity),
+          unitPrice: toNumber(row.unitPrice),
+          lineTotal: toNumber(row.lineTotal),
+          currency: row.currency ?? "USD",
+          storeName: row.storeName?.trim() || null,
+          purchasedAt,
+        };
+      })
+      .filter((row) => row.itemKey);
+
+    const rowsByReceiptId = new Map<number, BaseLedgerRow[]>();
+
+    for (const row of baseRows) {
+      const existing = rowsByReceiptId.get(row.receiptId) ?? [];
+      existing.push(row);
+      rowsByReceiptId.set(row.receiptId, existing);
+    }
+
+    const inferredQuantityByReceiptItemId = new Map<
+      number,
+      {
+        value: number | null;
+        source: "explicit" | "duplicate_lines" | "costco_default" | "unresolved";
+      }
+    >();
+
+    for (const receiptRows of rowsByReceiptId.values()) {
+      const inferredMap = buildInferredQuantityDetailsMap(
+        receiptRows.map((row) => ({
+          id: row.receiptItemId,
+          description: row.itemName,
+          quantity: row.quantity,
+          lineTotal: row.lineTotal,
+        })),
+        receiptRows[0]?.storeName,
+      );
+
+      for (const [receiptItemId, detail] of inferredMap) {
+        inferredQuantityByReceiptItemId.set(receiptItemId, detail);
+      }
+    }
+
+    const grouped = new Map<
+      string,
+      {
+        latest: BaseLedgerRow;
+        latestQuantity: number | null;
+        latestQuantitySource: "explicit" | "duplicate_lines" | "costco_default" | "unresolved";
+        purchaseCount: number;
+        stores: Set<string>;
+        unitPriceSum: number;
+        unitPriceCount: number;
+      }
+    >();
+
+    for (const row of baseRows) {
+      const inferred = inferredQuantityByReceiptItemId.get(row.receiptItemId) ?? {
+        value: row.quantity,
+        source: row.quantity != null ? "explicit" : "unresolved",
+      };
+
+      const existing = grouped.get(row.itemKey);
+
+      if (!existing) {
+        grouped.set(row.itemKey, {
+          latest: row,
+          latestQuantity: inferred.value,
+          latestQuantitySource: inferred.source,
+          purchaseCount: 1,
+          stores: new Set(row.storeName ? [row.storeName] : []),
+          unitPriceSum: row.unitPrice ?? 0,
+          unitPriceCount: row.unitPrice != null ? 1 : 0,
+        });
+        continue;
+      }
+
+      existing.purchaseCount += 1;
+
+      if (row.storeName) {
+        existing.stores.add(row.storeName);
+      }
+
+      if (row.unitPrice != null) {
+        existing.unitPriceSum += row.unitPrice;
+        existing.unitPriceCount += 1;
+      }
+
+      const isLater =
+        row.purchasedAt.getTime() > existing.latest.purchasedAt.getTime() ||
+        (row.purchasedAt.getTime() === existing.latest.purchasedAt.getTime() &&
+          row.receiptItemId > existing.latest.receiptItemId);
+
+      if (isLater) {
+        existing.latest = row;
+        existing.latestQuantity = inferred.value;
+        existing.latestQuantitySource = inferred.source;
+      }
+    }
+
+    return [...grouped.entries()]
+      .map(([itemKey, group]) => ({
+        itemKey,
+        itemName: group.latest.itemName,
+        latestReceiptItemId: group.latest.receiptItemId,
+        latestReceiptId: group.latest.receiptId,
+        lastStoreName: group.latest.storeName,
+        lastPurchasedAt: group.latest.purchasedAt.toISOString(),
+        latestQuantity: group.latestQuantity,
+        latestQuantitySource: group.latestQuantitySource,
+        latestUnitPrice: group.latest.unitPrice ?? 0,
+        latestLineTotal: group.latest.lineTotal ?? 0,
+        currency: group.latest.currency,
+        purchaseCount: group.purchaseCount,
+        stores: group.stores.size ? [...group.stores].sort((a, b) => a.localeCompare(b)).join(", ") : null,
+        storeCount: group.stores.size,
+        averageUnitPrice: group.unitPriceCount ? group.unitPriceSum / group.unitPriceCount : null,
+      }))
+      .filter((row) => {
+        const matchesQuery =
+          !q || row.itemName.toLowerCase().includes(q) || (row.stores ? row.stores.toLowerCase().includes(q) : false);
+        const matchesStore =
+          !storeFilter ||
+          (row.lastStoreName ? row.lastStoreName.toLowerCase().includes(storeFilter) : false) ||
+          (row.stores ? row.stores.toLowerCase().includes(storeFilter) : false);
+
+        return matchesQuery && matchesStore;
+      })
+      .sort((a, b) => {
+        const dateDiff = new Date(b.lastPurchasedAt).getTime() - new Date(a.lastPurchasedAt).getTime();
+        if (dateDiff !== 0) {
+          return dateDiff;
+        }
+
+        return a.itemName.localeCompare(b.itemName);
+      })
+      .slice(0, 250);
   } finally {
     await pool.end();
   }
@@ -254,6 +372,11 @@ export default async function ItemsLedgerPage({
                       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--text)]">
                         <span>
                           <span className="font-semibold text-[var(--muted)]">Qty:</span> {row.latestQuantity ?? "—"}
+                          {row.latestQuantitySource === "duplicate_lines"
+                            ? " (dup)"
+                            : row.latestQuantitySource === "costco_default"
+                              ? " (default)"
+                              : ""}
                         </span>
                         <span>
                           <span className="font-semibold text-[var(--muted)]">Latest unit:</span>{" "}
