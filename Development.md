@@ -525,3 +525,50 @@ Implementation notes:
 
 Next phase preview:
 - Phase 15 will improve item ledger accuracy so inferred quantities and normalized item grouping flow through more of the app
+
+## Current status after Phase 15
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+
+Pending next:
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+
+## Phase 15 — Item Ledger Accuracy Upgrade
+
+Status: Completed and verified locally.
+
+Objective:
+Make the Items Ledger more trustworthy by flowing inferred quantities and stronger item normalization into the consolidated item view.
+
+What was built:
+- Reworked `app/service-dashboard/items/page.tsx` to stop relying on the older raw SQL aggregation path
+- Applied `normalizeItemName()` to ledger grouping so similar item names consolidate more consistently
+- Applied Phase 14 inferred quantity rules per receipt before building ledger rows
+- Carried quantity-source metadata into the ledger so latest quantities can reflect `duplicate_lines` and `costco_default` inference
+- Updated ledger rendering to show inferred quantity markers such as `(dup)` and `(default)`
+- Kept latest purchase, latest receipt link, and unit-price summaries aligned with the smarter grouped item rows
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- Local `/service-dashboard/items` loaded successfully ✅
+- Local verification confirmed inferred quantity markers now appear in the Items Ledger ✅
+
+Implementation notes:
+- The ledger now uses the same quantity-inference rules as receipt detail and shopping actions instead of raw quantity alone
+- Grouping is now driven by normalized item names rather than only literal lowercase descriptions
+- This phase improves trust in latest quantity display without changing the underlying raw receipt rows in the database
+
+Next phase preview:
+- Phase 16 will add receipt edit and correction tools so parser mistakes can be fixed from the UI instead of living forever in silent embarrassment
