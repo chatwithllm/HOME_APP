@@ -620,3 +620,50 @@ Implementation notes:
 
 Next phase preview:
 - Phase 17 will improve receipt ingestion so better validation and richer structured payload handling reduce the need for corrections upstream
+
+## Current status after Phase 17
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+
+Pending next:
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+
+## Phase 17 — Receipt Ingestion Improvements
+
+Status: Completed and verified locally.
+
+Objective:
+Improve receipt ingestion so richer structured payloads can be validated and saved cleanly, reducing malformed data entering the system.
+
+What was built:
+- Upgraded `app/api/receipts/route.ts` to accept an optional structured `items` array
+- Added payload validation for ingested line items including description, line number, quantity, unit price, line total, and item metadata
+- Inserted `receipt_items` alongside the parent receipt within the same transaction
+- Derived and returned ingested item count from actual payload items instead of trusting loose external assumptions
+- Preserved existing receipt-level payload support such as structured JSON, OCR text, and metadata fields
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- Local API ingestion test succeeded, creating and linking receipt + item rows correctly ✅
+- Validation test data was removed after verification so the local DB was left clean ✅
+- Manual local review confirmed the ingestion upgrade looks good ✅
+
+Implementation notes:
+- Ingestion now supports richer structured payloads instead of only a thin receipt-row insert path
+- Receipt and line-item creation now happen atomically in one transaction
+- This phase improves upstream data quality so fewer parser mistakes need manual correction later
+
+Next phase preview:
+- Phase 18 will improve search, filters, and query UX so receipt lookup becomes more practical and less dependent on preset views
