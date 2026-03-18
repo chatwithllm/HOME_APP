@@ -851,3 +851,51 @@ Implementation notes:
 
 Next phase preview:
 - Phase 22 will add export, backup, and portability tools so receipt data is easier to move, inspect, and preserve outside the app
+
+## Current status after Phase 22
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+
+Pending next:
+- None in the original Phase 11–22 roadmap. Future work should be planned as a fresh follow-on roadmap.
+
+## Phase 22 — Export / Backup / Portability
+
+Status: Completed and verified locally.
+
+Objective:
+Add practical export and backup paths so receipt data can be downloaded, inspected, and preserved outside the app without direct database access.
+
+What was built:
+- Added `app/api/export/route.ts`
+- Added `app/service-dashboard/export/page.tsx`
+- Added practical export support for full-dataset JSON downloads
+- Added flat CSV export support for spreadsheet and analysis workflows
+- Linked the admin-quality surface to the export/backup page for easier admin-side discoverability
+
+Validation completed:
+- `npm run build` ✅
+- Local route test confirmed `/service-dashboard/export` renders successfully ✅
+- Local route test confirmed `/api/export?format=json` returns export data successfully ✅
+- Local route test confirmed `/api/export?format=csv` returns CSV successfully ✅
+- Lint warnings encountered during implementation were fixed before packaging ✅
+
+Implementation notes:
+- Phase 22 adds practical portability without requiring direct DB access or ad hoc scripts
+- The first export pass focuses on whole-dataset JSON and CSV, which are enough for backup, migration, and inspection
+- Navigation discoverability for admin/export pages is still a follow-on UX improvement rather than part of this completed phase
+
+Next roadmap note:
+- Future work can start from admin discoverability/navigation polish and any deeper export granularity or backup automation needs

@@ -100,6 +100,15 @@ export default async function AdminQualityPage() {
       description="Centralized view of parser gaps, suspicious totals, missing media, and receipts that deserve human side-eye."
     >
       <section className="space-y-6">
+        <div className="flex justify-end">
+          <Link
+            href="/service-dashboard/export"
+            className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+          >
+            Export & Backup
+          </Link>
+        </div>
+
         <SectionCard title="Overview" description={`${rows.length} receipt${rows.length === 1 ? "" : "s"} audited.`}>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
