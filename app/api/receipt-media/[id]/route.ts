@@ -1,9 +1,11 @@
 import fs from "fs/promises";
 import path from "path";
+import { get as getBlob } from "@vercel/blob";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { createDb } from "@/db/client";
 import { receipts } from "@/db/schema";
+import { isVercelBlobUrl } from "@/lib/receipt-media";
 
 const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -38,6 +40,24 @@ export async function GET(
 
     if (!receipt?.imagePath) {
       return NextResponse.json({ ok: false, error: "No media attached" }, { status: 404 });
+    }
+
+    if (isVercelBlobUrl(receipt.imagePath)) {
+      const blob = await getBlob(receipt.imagePath, {
+        access: "private",
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      });
+
+      if (!blob) {
+        return NextResponse.json({ ok: false, error: "Blob media not found" }, { status: 404 });
+      }
+
+      return new NextResponse(blob.stream, {
+        headers: {
+          "Content-Type": blob.blob.contentType || "application/octet-stream",
+          "Cache-Control": "private, max-age=300",
+        },
+      });
     }
 
     const resolvedPath = path.resolve(receipt.imagePath);

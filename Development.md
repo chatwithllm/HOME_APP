@@ -445,3 +445,27 @@ Implementation notes:
 
 Next phase preview:
 - Phase 13 will move receipt media to durable hosted storage so images/PDFs work reliably on the deployed app
+
+## Phase 13 — Durable Receipt Media Storage
+
+Status: In progress.
+
+Objective:
+Move receipt media out of local `/Users/...` file-path storage and into durable hosted storage that works on the deployed Vercel app without exposing receipts publicly.
+
+Progress so far:
+- Created branch `phase-13-durable-receipt-media-storage`
+- Added Vercel Blob SDK dependency
+- Added `lib/receipt-media.ts` to centralize receipt media URL handling
+- Updated receipt detail rendering to route Vercel Blob receipt media through `/api/receipt-media/[id]`
+- Updated `/api/receipt-media/[id]` to support private Vercel Blob fetches server-side while preserving local-file fallback
+- Added `scripts/migrate-receipt-media-to-blob.ts`
+- Added npm script `media:migrate:blob`
+- Switched migration uploads to `access: private`
+- Ran receipt media migration successfully, rewriting stored local file references to private Vercel Blob URLs
+- Confirmed `npm run build` and `npm run lint` pass locally after the private-blob changes
+
+Remaining work:
+- Push the Phase 13 branch for Vercel preview deployment
+- Verify hosted receipt detail pages load private media correctly in preview/production
+- Update deployment docs with the private-blob serving flow
