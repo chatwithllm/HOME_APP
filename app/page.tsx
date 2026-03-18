@@ -13,6 +13,11 @@ const routes = [
     note: "Fast filters for recent, monthly, yearly, and merchant-level receipt views.",
   },
   {
+    href: "/service-dashboard/items",
+    title: "Items Ledger",
+    note: "See purchased items consolidated in one place with latest price, store, and buy-list actions.",
+  },
+  {
     href: "/service-dashboard/shopping-plan",
     title: "Shopping Plan",
     note: "Shopping workflow surface for buy again, running low, and watch actions.",

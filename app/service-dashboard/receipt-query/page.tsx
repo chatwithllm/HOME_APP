@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { and, desc, gte, ilike, lt } from "drizzle-orm";
+import { and, asc, desc, gte, ilike, lt } from "drizzle-orm";
 import { CurrencyAmount, CurrencyToggle } from "@/components/currency-preferences";
 import { AppShell, SectionCard } from "@/components/shell";
 import { createDb } from "@/db/client";
 import { receipts } from "@/db/schema";
 
 type QueryPreset = "last-10" | "today" | "this-month" | "this-year" | "costco" | "amazon" | "walmart";
+type SortField = "receipt" | "store" | "date" | "total";
+type SortDirection = "asc" | "desc";
 
 type ReceiptQueryRow = {
   id: number;
@@ -76,11 +78,13 @@ function parseManualDateInput(input?: string) {
   return null;
 }
 
-async function getQueryResults(searchParams: { preset?: string; q?: string }) {
+async function getQueryResults(searchParams: { preset?: string; q?: string; sort?: string; dir?: string }) {
   if (!process.env.DATABASE_URL) {
     return {
       label: "No database connection",
       manualInputInvalid: false,
+      sortField: "date" as SortField,
+      sortDirection: "desc" as SortDirection,
       rows: [] as ReceiptQueryRow[],
     };
   }
@@ -89,6 +93,10 @@ async function getQueryResults(searchParams: { preset?: string; q?: string }) {
   const manualRange = parseManualDateInput(searchParams.q);
   const manualInputProvided = Boolean(searchParams.q?.trim());
   const manualInputInvalid = manualInputProvided && !manualRange;
+  const sortField = (["receipt", "store", "date", "total"] as const).includes(searchParams.sort as SortField)
+    ? (searchParams.sort as SortField)
+    : "date";
+  const sortDirection = searchParams.dir === "asc" ? "asc" : "desc";
 
   const { db, pool } = createDb();
 
@@ -140,6 +148,30 @@ async function getQueryResults(searchParams: { preset?: string; q?: string }) {
       label = `Manual query: ${manualRange.label}`;
     }
 
+    const primaryOrder =
+      sortField === "receipt"
+        ? sortDirection === "asc"
+          ? asc(receipts.id)
+          : desc(receipts.id)
+        : sortField === "store"
+          ? sortDirection === "asc"
+            ? asc(receipts.storeName)
+            : desc(receipts.storeName)
+          : sortField === "total"
+            ? sortDirection === "asc"
+              ? asc(receipts.total)
+              : desc(receipts.total)
+            : sortDirection === "asc"
+              ? asc(receipts.receiptDate)
+              : desc(receipts.receiptDate);
+
+    const secondaryOrder =
+      sortField === "date"
+        ? sortDirection === "asc"
+          ? asc(receipts.createdAt)
+          : desc(receipts.createdAt)
+        : desc(receipts.createdAt);
+
     const rows = await db.query.receipts.findMany({
       columns: {
         id: true,
@@ -150,13 +182,15 @@ async function getQueryResults(searchParams: { preset?: string; q?: string }) {
         createdAt: true,
       },
       where: conditions.length ? and(...conditions) : undefined,
-      orderBy: [desc(receipts.receiptDate), desc(receipts.createdAt)],
+      orderBy: [primaryOrder, secondaryOrder],
       limit,
     });
 
     return {
       label,
       manualInputInvalid,
+      sortField,
+      sortDirection,
       rows: rows.map((row) => ({
         id: row.id,
         storeName: row.storeName,
@@ -184,10 +218,24 @@ const quickFilters: { label: string; preset: QueryPreset }[] = [
 export default async function ReceiptQueryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ preset?: string; q?: string }>;
+  searchParams: Promise<{ preset?: string; q?: string; sort?: string; dir?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const { label, manualInputInvalid, rows } = await getQueryResults(resolvedSearchParams);
+  const { label, manualInputInvalid, sortField, sortDirection, rows } = await getQueryResults(resolvedSearchParams);
+
+  function buildSortHref(field: SortField) {
+    const params = new URLSearchParams();
+    if (resolvedSearchParams.preset) params.set("preset", resolvedSearchParams.preset);
+    if (resolvedSearchParams.q) params.set("q", resolvedSearchParams.q);
+    params.set("sort", field);
+    params.set("dir", sortField === field && sortDirection === "asc" ? "desc" : "asc");
+    return `/service-dashboard/receipt-query?${params.toString()}`;
+  }
+
+  function sortLabel(field: SortField, label: string) {
+    if (sortField !== field) return label;
+    return `${label} ${sortDirection === "asc" ? "↑" : "↓"}`;
+  }
 
   return (
     <AppShell
@@ -201,7 +249,32 @@ export default async function ReceiptQueryPage({
         </div>
 
         <SectionCard title="Quick filters" description="Run fast receipt lookups without typing anything.">
-          <div className="flex flex-wrap gap-3">
+          <div className="space-y-2 sm:hidden">
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+              {quickFilters.slice(0, 4).map((filter) => (
+                <Link
+                  key={filter.preset}
+                  href={`/service-dashboard/receipt-query?preset=${filter.preset}`}
+                  className="flex min-h-[42px] items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[var(--text)] hover:border-[var(--accent)]"
+                >
+                  {filter.label}
+                </Link>
+              ))}
+            </div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+              {quickFilters.slice(4).map((filter) => (
+                <Link
+                  key={filter.preset}
+                  href={`/service-dashboard/receipt-query?preset=${filter.preset}`}
+                  className="flex min-h-[42px] items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[var(--text)] hover:border-[var(--accent)]"
+                >
+                  {filter.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="hidden sm:flex sm:flex-wrap sm:gap-3">
             {quickFilters.map((filter) => (
               <Link
                 key={filter.preset}
@@ -215,7 +288,8 @@ export default async function ReceiptQueryPage({
         </SectionCard>
 
         <SectionCard title="Manual query" description="Accepted formats: YYYY-MM-DD, YYYY-MM, YYYY.">
-          <form method="get" className="flex flex-col gap-3 sm:flex-row">
+          <form method="get" className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_160px_auto]">
+            {resolvedSearchParams.preset ? <input type="hidden" name="preset" value={resolvedSearchParams.preset} /> : null}
             <input
               type="text"
               name="q"
@@ -223,12 +297,32 @@ export default async function ReceiptQueryPage({
               placeholder="YYYY-MM-DD, YYYY-MM, or YYYY"
               className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
             />
-            <button
-              type="submit"
-              className="rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-5 py-3 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
-            >
-              Run query
-            </button>
+            <div className="grid grid-cols-3 gap-3 lg:contents">
+              <select
+                name="sort"
+                defaultValue={sortField}
+                className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+              >
+                <option value="receipt">Receipt</option>
+                <option value="store">Store</option>
+                <option value="date">Date</option>
+                <option value="total">Total</option>
+              </select>
+              <select
+                name="dir"
+                defaultValue={sortDirection}
+                className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+              >
+                <option value="asc">ASC</option>
+                <option value="desc">DESC</option>
+              </select>
+              <button
+                type="submit"
+                className="rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+              >
+                Run query
+              </button>
+            </div>
           </form>
           {manualInputInvalid ? (
             <p className="mt-3 text-sm text-[var(--accent)]">Manual input must match YYYY-MM-DD, YYYY-MM, or YYYY.</p>
@@ -237,39 +331,97 @@ export default async function ReceiptQueryPage({
 
         <SectionCard title={label} description={`${rows.length} receipt${rows.length === 1 ? "" : "s"} found.`}>
           {rows.length ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-y-2 text-sm">
-                <thead>
-                  <tr className="text-left text-[var(--muted)]">
-                    <th className="px-3 py-2">Receipt</th>
-                    <th className="px-3 py-2">Store</th>
-                    <th className="px-3 py-2">Date</th>
-                    <th className="px-3 py-2">Total</th>
-                    <th className="px-3 py-2">Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id} className="bg-[var(--surface-soft)] text-[var(--text)]">
-                      <td className="rounded-l-[14px] px-3 py-3 font-semibold">#{row.id}</td>
-                      <td className="px-3 py-3">{row.storeName || "—"}</td>
-                      <td className="px-3 py-3">{formatReceiptDate(row.receiptDate, row.createdAt)}</td>
-                      <td className="px-3 py-3">
-                        <CurrencyAmount amount={row.total} currency={row.currency} />
-                      </td>
-                      <td className="rounded-r-[14px] px-3 py-3">
+            <>
+              <div className="mb-4 flex gap-2 text-xs font-semibold text-[var(--muted)] md:hidden">
+                <Link href={buildSortHref("receipt")} style={{ flex: "1 1 25%" }} className="flex min-h-[42px] items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-1 py-2 text-center hover:text-[var(--accent)]">
+                  {sortLabel("receipt", "Receipt")}
+                </Link>
+                <Link href={buildSortHref("store")} style={{ flex: "1 1 25%" }} className="flex min-h-[42px] items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-1 py-2 text-center hover:text-[var(--accent)]">
+                  {sortLabel("store", "Store")}
+                </Link>
+                <Link href={buildSortHref("date")} style={{ flex: "1 1 25%" }} className="flex min-h-[42px] items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-1 py-2 text-center hover:text-[var(--accent)]">
+                  {sortLabel("date", "Date")}
+                </Link>
+                <Link href={buildSortHref("total")} style={{ flex: "1 1 25%" }} className="flex min-h-[42px] items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-1 py-2 text-center hover:text-[var(--accent)]">
+                  {sortLabel("total", "Total")}
+                </Link>
+              </div>
+
+              <div className="space-y-3 md:hidden">
+                {rows.map((row) => (
+                  <div key={row.id} className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-semibold text-[var(--text)]">#{row.id} {row.storeName || "—"}</p>
+                        <p className="mt-1 text-sm text-[var(--muted)]">{formatReceiptDate(row.receiptDate, row.createdAt)}</p>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-semibold text-[var(--text)]">
+                          <CurrencyAmount amount={row.total} currency={row.currency} />
+                        </p>
                         <Link
                           href={`/service-dashboard/receipts/${row.id}`}
-                          className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+                          className="mt-2 inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
                         >
-                          View receipt
+                          View
                         </Link>
-                      </td>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+                  <thead>
+                    <tr className="text-left text-[var(--muted)]">
+                      <th className="px-3 py-2">
+                        <Link href={buildSortHref("receipt")} className="hover:text-[var(--accent)]">
+                          {sortLabel("receipt", "Receipt")}
+                        </Link>
+                      </th>
+                      <th className="px-3 py-2">
+                        <Link href={buildSortHref("store")} className="hover:text-[var(--accent)]">
+                          {sortLabel("store", "Store")}
+                        </Link>
+                      </th>
+                      <th className="px-3 py-2">
+                        <Link href={buildSortHref("date")} className="hover:text-[var(--accent)]">
+                          {sortLabel("date", "Date")}
+                        </Link>
+                      </th>
+                      <th className="px-3 py-2">
+                        <Link href={buildSortHref("total")} className="hover:text-[var(--accent)]">
+                          {sortLabel("total", "Total")}
+                        </Link>
+                      </th>
+                      <th className="px-3 py-2">Open</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.id} className="bg-[var(--surface-soft)] text-[var(--text)]">
+                        <td className="rounded-l-[14px] px-3 py-2 font-semibold">#{row.id}</td>
+                        <td className="px-3 py-2">{row.storeName || "—"}</td>
+                        <td className="px-3 py-2">{formatReceiptDate(row.receiptDate, row.createdAt)}</td>
+                        <td className="px-3 py-2">
+                          <CurrencyAmount amount={row.total} currency={row.currency} />
+                        </td>
+                        <td className="rounded-r-[14px] px-3 py-2">
+                          <Link
+                            href={`/service-dashboard/receipts/${row.id}`}
+                            className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+                          >
+                            View receipt
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <p className="text-sm leading-6 text-[var(--muted)]">No receipts matched this query.</p>
           )}
