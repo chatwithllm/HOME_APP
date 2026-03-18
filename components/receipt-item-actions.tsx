@@ -56,8 +56,8 @@ export function ReceiptItemActions({ receiptItemId }: { receiptItemId: number })
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+    <div className="w-full space-y-3">
+      <div className="grid w-full gap-2" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
         {actions.map((action) => {
           const confirming = pendingConfirmation === action.value;
 
@@ -67,7 +67,7 @@ export function ReceiptItemActions({ receiptItemId }: { receiptItemId: number })
               type="button"
               onClick={() => void runAction(action.value)}
               disabled={busyAction !== null}
-              className={`min-h-[40px] rounded-[10px] border px-3 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-70 ${
+              className={`min-h-[34px] w-full min-w-0 rounded-[10px] border px-1.5 py-1.5 text-[10px] font-semibold leading-tight whitespace-nowrap transition disabled:cursor-wait disabled:opacity-70 sm:min-h-[40px] sm:px-3 sm:py-2 sm:text-xs ${
                 confirming
                   ? "border-[var(--accent)] bg-[rgba(139,46,29,0.12)] text-[var(--accent-dark)]"
                   : "border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[rgba(255,241,191,0.7)] hover:text-[var(--accent-dark)]"
