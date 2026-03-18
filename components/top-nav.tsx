@@ -9,6 +9,7 @@ const items: Array<{ href: Route; label: string }> = [
   { href: "/service-dashboard/items", label: "Items" },
   { href: "/service-dashboard/receipt-query", label: "Receipt Queries" },
   { href: "/service-dashboard/shopping-plan", label: "Shopping" },
+  { href: "/service-dashboard/admin-quality", label: "Admin" },
   { href: "/homeassistant", label: "Home Assistant" },
   { href: "/ideas-log", label: "Ideas" },
 ];
@@ -28,8 +29,8 @@ export function TopNav() {
         </Link>
       ) : null}
 
-      <nav className="w-full rounded-[18px] border border-[rgba(255,241,191,0.22)] bg-[rgba(67,40,24,0.14)] p-2 shadow-[0_12px_28px_rgba(67,40,24,0.12)] backdrop-blur-[6px] sm:w-[75%] sm:max-w-[760px] sm:rounded-[20px] sm:p-1">
-        <div className="grid grid-cols-6 gap-2 sm:grid-cols-6 sm:gap-3">
+      <nav className="w-full rounded-[18px] border border-[rgba(255,241,191,0.22)] bg-[rgba(67,40,24,0.14)] p-2 shadow-[0_12px_28px_rgba(67,40,24,0.12)] backdrop-blur-[6px] sm:w-[85%] sm:max-w-[920px] sm:rounded-[20px] sm:p-1">
+        <div className="grid grid-cols-6 gap-2 sm:grid-cols-7 sm:gap-3">
           {items.map((item) => {
             const active = pathname === item.href;
 
