@@ -1,7 +1,8 @@
+import type { Route } from "next";
 import Link from "next/link";
 import { AppShell, SectionCard } from "@/components/shell";
 
-const routes = [
+const routes: Array<{ href: Route; title: string; note: string }> = [
   {
     href: "/service-dashboard/receipts",
     title: "Dashboard",
@@ -42,7 +43,7 @@ export default function Home() {
       description="Local-first receipt intelligence system for tracking spend, understanding item history, and feeding a smarter shopping workflow without looking like a tragic admin template from 2017."
     >
       <section>
-        <SectionCard title="Receipt intelligence, not spreadsheet cosplay" description="">
+        <SectionCard>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {routes.map((route) => (
               <Link

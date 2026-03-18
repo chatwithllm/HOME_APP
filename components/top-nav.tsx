@@ -1,9 +1,10 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const items = [
+const items: Array<{ href: Route; label: string }> = [
   { href: "/service-dashboard/receipts", label: "Dashboard" },
   { href: "/service-dashboard/items", label: "Items" },
   { href: "/service-dashboard/receipt-query", label: "Receipt Queries" },

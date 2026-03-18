@@ -8,6 +8,7 @@ import { AppShell, SectionCard } from "@/components/shell";
 import { StoreTypeSelector } from "@/components/store-type-selector";
 import { createDb } from "@/db/client";
 import { receiptItems, receipts, storeProfiles } from "@/db/schema";
+import { buildInferredQuantityMap } from "@/lib/receipt-item-quantity";
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) {
@@ -115,6 +116,7 @@ export default async function ReceiptDetailPage({
   }
 
   const { receipt, items, storeProfile } = detail;
+  const inferredQuantityByItemId = buildInferredQuantityMap(items, receipt.storeName);
   const totalAmount = Number(receipt.total ?? 0);
   const subtotalAmount = Number(receipt.subtotal ?? 0);
   const taxAmount = Number(receipt.tax ?? 0);
@@ -262,7 +264,7 @@ export default async function ReceiptDetailPage({
                           #{item.lineNumber ?? index + 1} {item.description}
                         </p>
                         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[11px] text-[var(--muted)] sm:text-xs">
-                          <span>Qty {item.quantity ?? "—"}</span>
+                          <span>Qty {inferredQuantityByItemId.get(item.id) ?? "—"}</span>
                           <span>•</span>
                           <span>Unit <CurrencyAmount amount={item.unitPrice} currency={receipt.currency} /></span>
                           <span>•</span>
