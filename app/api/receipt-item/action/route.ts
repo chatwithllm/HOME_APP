@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createDb } from "@/db/client";
 import { receiptItems, receipts, shoppingLists, shoppingPlanItems } from "@/db/schema";
 import { normalizeItemName } from "@/lib/normalize-item";
+import { buildInferredQuantityMap } from "@/lib/receipt-item-quantity";
 
 const receiptItemActionSchema = z.object({
   receiptItemId: z.number().int().positive(),
@@ -89,6 +90,11 @@ export async function POST(request: Request) {
     }
 
     let list = await db.query.shoppingLists.findFirst({
+      columns: {
+        id: true,
+        name: true,
+        status: true,
+      },
       where: and(eq(shoppingLists.name, listName), eq(shoppingLists.status, "open")),
     });
 
@@ -96,9 +102,9 @@ export async function POST(request: Request) {
       const createdList = await db
         .insert(shoppingLists)
         .values({ name: listName })
-        .returning({ id: shoppingLists.id, name: shoppingLists.name });
+        .returning({ id: shoppingLists.id, name: shoppingLists.name, status: shoppingLists.status });
 
-      list = { id: createdList[0].id, name: createdList[0].name, status: "open" };
+      list = createdList[0];
     }
 
     const existingItem = await db.query.shoppingPlanItems.findFirst({
@@ -108,7 +114,16 @@ export async function POST(request: Request) {
       ),
     });
 
-    const incomingQty = item.quantity ?? null;
+    const siblingItems = await db.query.receiptItems.findMany({
+      columns: {
+        id: true,
+        description: true,
+        quantity: true,
+      },
+      where: eq(receiptItems.receiptId, item.receiptId),
+    });
+
+    const incomingQty = buildInferredQuantityMap(siblingItems, receipt.storeName).get(item.id) ?? null;
 
     if (existingItem) {
       const mergedQty =

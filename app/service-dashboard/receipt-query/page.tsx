@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 import { and, asc, desc, gte, ilike, lt } from "drizzle-orm";
 import { CurrencyAmount, CurrencyToggle } from "@/components/currency-preferences";
@@ -223,13 +224,13 @@ export default async function ReceiptQueryPage({
   const resolvedSearchParams = await searchParams;
   const { label, manualInputInvalid, sortField, sortDirection, rows } = await getQueryResults(resolvedSearchParams);
 
-  function buildSortHref(field: SortField) {
+  function buildSortHref(field: SortField): Route {
     const params = new URLSearchParams();
     if (resolvedSearchParams.preset) params.set("preset", resolvedSearchParams.preset);
     if (resolvedSearchParams.q) params.set("q", resolvedSearchParams.q);
     params.set("sort", field);
     params.set("dir", sortField === field && sortDirection === "asc" ? "desc" : "asc");
-    return `/service-dashboard/receipt-query?${params.toString()}`;
+    return `/service-dashboard/receipt-query?${params.toString()}` as Route;
   }
 
   function sortLabel(field: SortField, label: string) {

@@ -355,6 +355,17 @@ Implementation notes:
 Phase summary:
 - Core phased build from Phase 1 through Phase 10 is now implemented
 
+## Phase Execution Workflow
+
+For every phase from Phase 11 onward:
+- Create a dedicated branch for that phase.
+- Complete the scoped work for that phase only.
+- Commit the changes with a phase-specific commit message.
+- Push the branch to git.
+- Update `Development.md` with what was completed and how it was validated.
+- Ask Tony whether to merge the phase branch into `main`.
+- After merge, ask whether to proceed to the next phase.
+
 ## Post-Phase UX Adjustments — Dashboard Recent Receipts
 
 Status: Completed locally and ready for branch push.
@@ -374,3 +385,32 @@ Validation completed:
 - Mobile and desktop layouts now follow the same visual pattern as Receipt Queries ✅
 - Recent receipts are sorted by receipt date with stable fallback ordering ✅
 - `npm run lint` pending branch validation
+
+## Phase 11 — Production Build Readiness
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Make the app production-build clean so Vercel deployment work is blocked by real infrastructure choices rather than preventable TypeScript/build failures.
+
+What was built:
+- Fixed production-only typed-route issues surfaced by Next.js build enforcement
+- Updated route typing in:
+  - `app/page.tsx`
+  - `app/service-dashboard/receipt-query/page.tsx`
+  - `components/top-nav.tsx`
+- Fixed shopping list creation typing in `app/api/receipt-item/action/route.ts` so production TypeScript checks pass cleanly
+- Preserved the earlier Costco quantity inference and recent receipts UI updates while making the code production-build safe
+- Documented the per-phase workflow in `Development.md` for all future phases
+
+Validation completed:
+- `npm run build` ✅
+- `npm run lint` ✅
+- Production build completes with static/dynamic routes generated successfully ✅
+
+Implementation notes:
+- Phase 11 focused on code-level production readiness only, not infrastructure provisioning
+- The app is now build-clean for Vercel-style deployment, but production hosting still needs database configuration and durable receipt-media storage decisions
+
+Next phase preview:
+- Phase 12 will connect the app to Vercel and a production database for a real hosted URL
