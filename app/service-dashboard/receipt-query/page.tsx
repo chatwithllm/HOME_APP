@@ -1,6 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { and, asc, desc, gte, ilike, lt } from "drizzle-orm";
+import { and, asc, desc, gte, ilike, lte, lt, sql } from "drizzle-orm";
 import { CurrencyAmount, CurrencyToggle } from "@/components/currency-preferences";
 import { AppShell, SectionCard } from "@/components/shell";
 import { createDb } from "@/db/client";
@@ -17,6 +17,17 @@ type ReceiptQueryRow = {
   total: number;
   currency: string;
   createdAt: Date;
+};
+
+type ReceiptQueryParams = {
+  preset?: string;
+  date?: string;
+  store?: string;
+  item?: string;
+  minTotal?: string;
+  maxTotal?: string;
+  sort?: string;
+  dir?: string;
 };
 
 function formatReceiptDate(value: Date | null, fallbackCreatedAt: Date) {
@@ -79,11 +90,23 @@ function parseManualDateInput(input?: string) {
   return null;
 }
 
-async function getQueryResults(searchParams: { preset?: string; q?: string; sort?: string; dir?: string }) {
+function parseAmountInput(input?: string) {
+  const value = input?.trim();
+
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+async function getQueryResults(searchParams: ReceiptQueryParams) {
   if (!process.env.DATABASE_URL) {
     return {
       label: "No database connection",
-      manualInputInvalid: false,
+      dateInputInvalid: false,
+      amountInputInvalid: false,
       sortField: "date" as SortField,
       sortDirection: "desc" as SortDirection,
       rows: [] as ReceiptQueryRow[],
@@ -91,9 +114,14 @@ async function getQueryResults(searchParams: { preset?: string; q?: string; sort
   }
 
   const preset = searchParams.preset as QueryPreset | undefined;
-  const manualRange = parseManualDateInput(searchParams.q);
-  const manualInputProvided = Boolean(searchParams.q?.trim());
-  const manualInputInvalid = manualInputProvided && !manualRange;
+  const manualRange = parseManualDateInput(searchParams.date);
+  const dateInputProvided = Boolean(searchParams.date?.trim());
+  const dateInputInvalid = dateInputProvided && !manualRange;
+  const minTotal = parseAmountInput(searchParams.minTotal);
+  const maxTotal = parseAmountInput(searchParams.maxTotal);
+  const amountInputInvalid = (searchParams.minTotal?.trim() ? Number.isNaN(minTotal) : false) || (searchParams.maxTotal?.trim() ? Number.isNaN(maxTotal) : false);
+  const storeFilter = searchParams.store?.trim() ?? "";
+  const itemFilter = searchParams.item?.trim() ?? "";
   const sortField = (["receipt", "store", "date", "total"] as const).includes(searchParams.sort as SortField)
     ? (searchParams.sort as SortField)
     : "date";
@@ -103,50 +131,80 @@ async function getQueryResults(searchParams: { preset?: string; q?: string; sort
 
   try {
     const conditions = [];
+    const labelParts: string[] = [];
     let limit = 50;
     let label = "Recent receipts";
 
     if (preset === "last-10") {
       limit = 10;
-      label = "Last 10 receipts";
+      labelParts.push("Last 10");
     }
 
     if (preset === "today") {
       const { start, end } = getDayRange();
       conditions.push(gte(receipts.receiptDate, start), lt(receipts.receiptDate, end));
-      label = "Today";
+      labelParts.push("Today");
     }
 
     if (preset === "this-month") {
       const { start, end } = getMonthRange();
       conditions.push(gte(receipts.receiptDate, start), lt(receipts.receiptDate, end));
-      label = "This month";
+      labelParts.push("This month");
     }
 
     if (preset === "this-year") {
       const { start, end } = getYearRange();
       conditions.push(gte(receipts.receiptDate, start), lt(receipts.receiptDate, end));
-      label = "This year";
+      labelParts.push("This year");
     }
 
     if (preset === "costco") {
       conditions.push(ilike(receipts.storeName, "%Costco%"));
-      label = "Costco";
+      labelParts.push("Costco");
     }
 
     if (preset === "amazon") {
       conditions.push(ilike(receipts.storeName, "%Amazon%"));
-      label = "Amazon";
+      labelParts.push("Amazon");
     }
 
     if (preset === "walmart") {
       conditions.push(ilike(receipts.storeName, "%Walmart%"));
-      label = "Walmart";
+      labelParts.push("Walmart");
     }
 
     if (manualRange) {
       conditions.push(gte(receipts.receiptDate, manualRange.start), lt(receipts.receiptDate, manualRange.end));
-      label = `Manual query: ${manualRange.label}`;
+      labelParts.push(`Date: ${manualRange.label}`);
+    }
+
+    if (storeFilter) {
+      conditions.push(ilike(receipts.storeName, `%${storeFilter}%`));
+      labelParts.push(`Store: ${storeFilter}`);
+    }
+
+    if (!Number.isNaN(minTotal) && minTotal != null) {
+      conditions.push(gte(receipts.total, minTotal.toFixed(2)));
+      labelParts.push(`Min: ${minTotal.toFixed(2)}`);
+    }
+
+    if (!Number.isNaN(maxTotal) && maxTotal != null) {
+      conditions.push(lte(receipts.total, maxTotal.toFixed(2)));
+      labelParts.push(`Max: ${maxTotal.toFixed(2)}`);
+    }
+
+    if (itemFilter) {
+      conditions.push(sql`exists (
+        select 1
+        from receipt_items ri
+        where ri.receipt_id = ${receipts.id}
+          and ri.description ilike ${`%${itemFilter}%`}
+      )`);
+      labelParts.push(`Item: ${itemFilter}`);
+    }
+
+    if (labelParts.length) {
+      label = labelParts.join(" · ");
     }
 
     const primaryOrder =
@@ -189,7 +247,8 @@ async function getQueryResults(searchParams: { preset?: string; q?: string; sort
 
     return {
       label,
-      manualInputInvalid,
+      dateInputInvalid,
+      amountInputInvalid,
       sortField,
       sortDirection,
       rows: rows.map((row) => ({
@@ -219,18 +278,29 @@ const quickFilters: { label: string; preset: QueryPreset }[] = [
 export default async function ReceiptQueryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ preset?: string; q?: string; sort?: string; dir?: string }>;
+  searchParams: Promise<ReceiptQueryParams>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const { label, manualInputInvalid, sortField, sortDirection, rows } = await getQueryResults(resolvedSearchParams);
+  const { label, dateInputInvalid, amountInputInvalid, sortField, sortDirection, rows } = await getQueryResults(resolvedSearchParams);
+
+  function buildHref(overrides: Partial<ReceiptQueryParams>): Route {
+    const params = new URLSearchParams();
+    const merged: ReceiptQueryParams = { ...resolvedSearchParams, ...overrides };
+
+    for (const [key, value] of Object.entries(merged)) {
+      if (value) {
+        params.set(key, value);
+      }
+    }
+
+    return `/service-dashboard/receipt-query?${params.toString()}` as Route;
+  }
 
   function buildSortHref(field: SortField): Route {
-    const params = new URLSearchParams();
-    if (resolvedSearchParams.preset) params.set("preset", resolvedSearchParams.preset);
-    if (resolvedSearchParams.q) params.set("q", resolvedSearchParams.q);
-    params.set("sort", field);
-    params.set("dir", sortField === field && sortDirection === "asc" ? "desc" : "asc");
-    return `/service-dashboard/receipt-query?${params.toString()}` as Route;
+    return buildHref({
+      sort: field,
+      dir: sortField === field && sortDirection === "asc" ? "desc" : "asc",
+    });
   }
 
   function sortLabel(field: SortField, label: string) {
@@ -242,7 +312,7 @@ export default async function ReceiptQueryPage({
     <AppShell
       title="Receipt Query"
       eyebrow="Search"
-      description="The query surface for jumping through time, stores, and eventually item-level receipt history without writing SQL like a gremlin."
+      description="The query surface for jumping through time, stores, totals, and item text without writing SQL like a gremlin."
     >
       <section className="space-y-6">
         <div className="flex justify-start sm:justify-end">
@@ -255,7 +325,7 @@ export default async function ReceiptQueryPage({
               {quickFilters.slice(0, 4).map((filter) => (
                 <Link
                   key={filter.preset}
-                  href={`/service-dashboard/receipt-query?preset=${filter.preset}`}
+                  href={buildHref({ preset: filter.preset })}
                   className="flex min-h-[42px] items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[var(--text)] hover:border-[var(--accent)]"
                 >
                   {filter.label}
@@ -266,7 +336,7 @@ export default async function ReceiptQueryPage({
               {quickFilters.slice(4).map((filter) => (
                 <Link
                   key={filter.preset}
-                  href={`/service-dashboard/receipt-query?preset=${filter.preset}`}
+                  href={buildHref({ preset: filter.preset })}
                   className="flex min-h-[42px] items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[var(--text)] hover:border-[var(--accent)]"
                 >
                   {filter.label}
@@ -279,7 +349,7 @@ export default async function ReceiptQueryPage({
             {quickFilters.map((filter) => (
               <Link
                 key={filter.preset}
-                href={`/service-dashboard/receipt-query?preset=${filter.preset}`}
+                href={buildHref({ preset: filter.preset })}
                 className="rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--text)] hover:border-[var(--accent)]"
               >
                 {filter.label}
@@ -288,45 +358,84 @@ export default async function ReceiptQueryPage({
           </div>
         </SectionCard>
 
-        <SectionCard title="Manual query" description="Accepted formats: YYYY-MM-DD, YYYY-MM, YYYY.">
-          <form method="get" className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_160px_auto]">
-            {resolvedSearchParams.preset ? <input type="hidden" name="preset" value={resolvedSearchParams.preset} /> : null}
+        <SectionCard title="Advanced query" description="Combine date, store, item text, totals, and sort controls.">
+          <form method="get" className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+            <input type="hidden" name="preset" value={resolvedSearchParams.preset || ""} />
             <input
               type="text"
-              name="q"
-              defaultValue={resolvedSearchParams.q || ""}
-              placeholder="YYYY-MM-DD, YYYY-MM, or YYYY"
+              name="date"
+              defaultValue={resolvedSearchParams.date || ""}
+              placeholder="Date: YYYY-MM-DD / YYYY-MM / YYYY"
               className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
             />
-            <div className="grid grid-cols-3 gap-3 lg:contents">
-              <select
-                name="sort"
-                defaultValue={sortField}
-                className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--text)] outline-none"
-              >
-                <option value="receipt">Receipt</option>
-                <option value="store">Store</option>
-                <option value="date">Date</option>
-                <option value="total">Total</option>
-              </select>
-              <select
-                name="dir"
-                defaultValue={sortDirection}
-                className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--text)] outline-none"
-              >
-                <option value="asc">ASC</option>
-                <option value="desc">DESC</option>
-              </select>
+            <input
+              type="text"
+              name="store"
+              defaultValue={resolvedSearchParams.store || ""}
+              placeholder="Store contains..."
+              className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+            />
+            <input
+              type="text"
+              name="item"
+              defaultValue={resolvedSearchParams.item || ""}
+              placeholder="Item contains..."
+              className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="text"
+                name="minTotal"
+                defaultValue={resolvedSearchParams.minTotal || ""}
+                placeholder="Min total"
+                className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+              />
+              <input
+                type="text"
+                name="maxTotal"
+                defaultValue={resolvedSearchParams.maxTotal || ""}
+                placeholder="Max total"
+                className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+              />
+            </div>
+            <select
+              name="sort"
+              defaultValue={sortField}
+              className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+            >
+              <option value="receipt">Receipt</option>
+              <option value="store">Store</option>
+              <option value="date">Date</option>
+              <option value="total">Total</option>
+            </select>
+            <select
+              name="dir"
+              defaultValue={sortDirection}
+              className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--text)] outline-none"
+            >
+              <option value="asc">ASC</option>
+              <option value="desc">DESC</option>
+            </select>
+            <div className="grid grid-cols-2 gap-3 xl:col-span-2">
               <button
                 type="submit"
                 className="rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
               >
                 Run query
               </button>
+              <Link
+                href="/service-dashboard/receipt-query"
+                className="inline-flex items-center justify-center rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              >
+                Clear
+              </Link>
             </div>
           </form>
-          {manualInputInvalid ? (
-            <p className="mt-3 text-sm text-[var(--accent)]">Manual input must match YYYY-MM-DD, YYYY-MM, or YYYY.</p>
+          {dateInputInvalid ? (
+            <p className="mt-3 text-sm text-[var(--accent)]">Date input must match YYYY-MM-DD, YYYY-MM, or YYYY.</p>
+          ) : null}
+          {amountInputInvalid ? (
+            <p className="mt-3 text-sm text-[var(--accent)]">Amount filters must be valid numbers.</p>
           ) : null}
         </SectionCard>
 
