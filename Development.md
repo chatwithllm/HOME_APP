@@ -899,3 +899,156 @@ Implementation notes:
 
 Next roadmap note:
 - Future work can start from admin discoverability/navigation polish and any deeper export granularity or backup automation needs
+
+# Follow-on roadmap after Phase 22
+
+This section is the next starting point after the original Phase 11–22 roadmap. It is intentionally written before implementation so future work does not depend on chat history survival.
+
+## Recommended execution order
+1. Phase 23 — Admin Navigation + Discoverability
+2. Phase 24 — Recommendation Actions + Workflow Loop Closure
+3. Phase 25 — Export Granularity + Scheduled Backup UX
+4. Phase 26 — Receipt Ingestion / Parser Confidence v2
+5. Phase 27 — Store Intelligence + Merchant Profiles
+6. Phase 28 — Automation / Integrations Follow-through
+
+## Phase 23 — Admin Navigation + Discoverability
+
+Goal:
+Make admin-only surfaces discoverable from the app without relying on direct URLs.
+
+Planned work:
+- add navigation entry points for `Admin Quality` and `Export & Backup`
+- decide whether these live under a dedicated `Admin` nav item or a compact tools/admin area
+- keep normal user-facing navigation clean while making operational pages easy to find
+- optionally add a small landing panel that links to admin tools from the dashboard
+
+Completion looks like:
+- admin-quality and export pages are reachable through normal in-app navigation
+- users no longer need memorized URLs for operational pages
+
+## Phase 24 — Recommendation Actions + Workflow Loop Closure
+
+Goal:
+Turn recommendations into actionable planning steps instead of read-only suggestions.
+
+Planned work:
+- add `Add to plan` / `Add to Buy Again` behavior directly from recommendation cards
+- support dismiss/ignore with clearer state handling
+- avoid duplicate recommendation → plan spam when an item is already planned
+- preserve source context so recommendations feel traceable, not magical
+
+Completion looks like:
+- recommendation cards can directly feed the shopping workflow
+- the recommendation layer becomes operational instead of advisory-only
+
+## Phase 25 — Export Granularity + Scheduled Backup UX
+
+Goal:
+Make export/backup more flexible than one full dump for all cases.
+
+Planned work:
+- add filtered export options (date range, store, receipt subset, maybe items-only)
+- consider downloadable backup bundles or snapshots
+- add lightweight backup instructions/workflow text in the UI
+- optionally add a script or admin route for repeatable local backup tasks
+
+Completion looks like:
+- export is useful for selective analysis, not just full-dataset extraction
+- backup feels like a supported workflow rather than a lucky side effect of the API
+
+## Phase 26 — Receipt Ingestion / Parser Confidence v2
+
+Goal:
+Reduce downstream cleanup by making upstream ingestion smarter and more explainable.
+
+Planned work:
+- track parser-confidence or quality hints per receipt/item
+- improve ingestion handling for partial/uncertain structured payloads
+- surface clearer reasons for unresolved quantity / suspicious parse results
+- reduce how often manual correction is needed after import
+
+Completion looks like:
+- low-confidence receipts are easier to identify immediately
+- ingestion quality improves before data lands in the main workflow surfaces
+
+## Phase 27 — Store Intelligence + Merchant Profiles
+
+Goal:
+Make store-level behavior more useful across shopping, analytics, and cleanup.
+
+Planned work:
+- enrich store profiles beyond just store type
+- support merchant-specific notes/rules/preferences where helpful
+- improve preferred-store behavior for recommendations and shopping plans
+- surface store-level patterns in the UI more clearly
+
+Completion looks like:
+- the app behaves more intelligently across merchants instead of treating every store as identical with different fonts
+
+## Phase 28 — Automation / Integrations Follow-through
+
+Goal:
+Turn the internal workflows into something that can integrate or automate reliably.
+
+Planned work:
+- expand shopping sync/event usage where appropriate
+- improve export/use paths for other systems
+- consider notification or assistant-facing hooks for recommendations / quality alerts / backups
+- make recurring operational tasks less manual
+
+Completion looks like:
+- the app becomes easier to plug into broader workflows instead of remaining a self-contained island
+
+## Current status after Phase 23
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+- Phase 23 — Admin Navigation + Discoverability
+
+Pending next:
+- Phase 24 — Recommendation Actions + Workflow Loop Closure
+- Phase 25 — Export Granularity + Scheduled Backup UX
+- Phase 26 — Receipt Ingestion / Parser Confidence v2
+- Phase 27 — Store Intelligence + Merchant Profiles
+- Phase 28 — Automation / Integrations Follow-through
+
+## Phase 23 — Admin Navigation + Discoverability
+
+Status: Completed and verified locally.
+
+Objective:
+Make admin surfaces discoverable from the app without relying on direct URLs.
+
+What was built:
+- Updated `components/top-nav.tsx`
+- Added `Admin` to the top navigation
+- Made `Admin Quality` reachable through normal in-app navigation instead of memorized URLs
+- Kept the existing direct path between admin-quality and export/backup surfaces intact
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- Manual local review confirmed the navigation update looks good ✅
+
+Implementation notes:
+- Phase 23 focused on discoverability rather than introducing a heavier admin menu system
+- Admin surfaces are now meaningfully easier to find without cluttering the rest of the app too aggressively
+- Export remains reachable through Admin Quality until a more formal admin navigation structure is warranted
+
+## Notes for future restart
+- The original Phase 11–22 roadmap is complete and merged to `main`.
+- Phase 23 is now complete on branch as the first follow-on roadmap item.
+- The most obvious immediate next step is **Phase 24 — Recommendation Actions + Workflow Loop Closure**.
+- If choosing only one next step for user-visible usefulness, do Phase 24 first.
