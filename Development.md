@@ -478,3 +478,50 @@ Implementation notes:
 
 Next phase preview:
 - Phase 14 will improve receipt parsing quality rules, especially quantity inference and duplicate-line handling for stores such as Costco
+
+## Current status after Phase 14
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+
+Pending next:
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+
+## Phase 14 — Receipt Parsing Quality Rules
+
+Status: Completed and verified locally.
+
+Objective:
+Improve receipt parsing quality rules, especially quantity inference, duplicate-line handling, and merchant-specific behavior for stores such as Costco.
+
+What was built:
+- Centralized inferred quantity logic in `lib/receipt-item-quantity.ts`
+- Added explicit inference sources: `explicit`, `duplicate_lines`, `costco_default`, and `unresolved`
+- Improved duplicate-line counting so repeated normalized item descriptions can infer quantity when explicit quantity is missing
+- Preserved and centralized Costco fallback behavior so missing Costco quantities default consistently
+- Updated `app/api/receipt-item/action/route.ts` so shopping actions use the same inferred quantity rules as the receipt detail page
+- Updated `app/service-dashboard/receipts/[id]/page.tsx` to surface better parse-quality reporting and show quantity inference markers in the item list
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- Local receipt pages loaded successfully on port 3001 ✅
+- Local verification confirmed Costco-style missing quantities render with the new fallback labeling ✅
+
+Implementation notes:
+- Quantity inference is now centralized instead of split between display-time and action-time logic
+- Duplicate-line inference uses normalized item descriptions and ignores clearly non-item negative line totals
+- Receipt detail parse quality now distinguishes unresolved quantities from duplicate-inferred and Costco-defaulted quantities
+
+Next phase preview:
+- Phase 15 will improve item ledger accuracy so inferred quantities and normalized item grouping flow through more of the app

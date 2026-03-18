@@ -8,7 +8,7 @@ import { AppShell, SectionCard } from "@/components/shell";
 import { StoreTypeSelector } from "@/components/store-type-selector";
 import { createDb } from "@/db/client";
 import { receiptItems, receipts, storeProfiles } from "@/db/schema";
-import { buildInferredQuantityMap } from "@/lib/receipt-item-quantity";
+import { buildInferredQuantityDetailsMap, summarizeInferredQuantities } from "@/lib/receipt-item-quantity";
 import { getReceiptMediaSrc } from "@/lib/receipt-media";
 
 function formatDate(value: Date | string | null | undefined) {
@@ -97,11 +97,11 @@ export default async function ReceiptDetailPage({
   }
 
   const { receipt, items, storeProfile } = detail;
-  const inferredQuantityByItemId = buildInferredQuantityMap(items, receipt.storeName);
+  const inferredQuantityByItemId = buildInferredQuantityDetailsMap(items, receipt.storeName);
+  const quantitySummary = summarizeInferredQuantities(items, receipt.storeName);
   const totalAmount = Number(receipt.total ?? 0);
   const subtotalAmount = Number(receipt.subtotal ?? 0);
   const taxAmount = Number(receipt.tax ?? 0);
-  const missingQuantityCount = items.filter((item) => item.quantity == null).length;
   const zeroUnitPriceCount = items.filter((item) => Number(item.unitPrice ?? 0) === 0).length;
   const topItems = [...items]
     .sort((a, b) => Number(b.lineTotal ?? 0) - Number(a.lineTotal ?? 0))
@@ -201,10 +201,12 @@ export default async function ReceiptDetailPage({
                 <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Parse quality</p>
                   <p className="mt-2 text-base font-semibold text-[var(--text)]">
-                    {missingQuantityCount} missing qty · {zeroUnitPriceCount} zero-price lines
+                    {quantitySummary.unresolvedCount} unresolved qty · {zeroUnitPriceCount} zero-price lines
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                    These usually indicate OCR/parser gaps rather than real free items.
+                    Qty coverage: {quantitySummary.explicitCount} explicit, {quantitySummary.duplicateLineCount} duplicate-inferred,
+                    {" "}
+                    {quantitySummary.costcoDefaultCount} Costco-defaulted.
                   </p>
                 </div>
 
@@ -245,7 +247,14 @@ export default async function ReceiptDetailPage({
                           #{item.lineNumber ?? index + 1} {item.description}
                         </p>
                         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[11px] text-[var(--muted)] sm:text-xs">
-                          <span>Qty {inferredQuantityByItemId.get(item.id) ?? "—"}</span>
+                          <span>
+                            Qty {inferredQuantityByItemId.get(item.id)?.value ?? "—"}
+                            {inferredQuantityByItemId.get(item.id)?.source === "duplicate_lines"
+                              ? " (dup)"
+                              : inferredQuantityByItemId.get(item.id)?.source === "costco_default"
+                                ? " (default)"
+                                : ""}
+                          </span>
                           <span>•</span>
                           <span>Unit <CurrencyAmount amount={item.unitPrice} currency={receipt.currency} /></span>
                           <span>•</span>
