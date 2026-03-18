@@ -13,14 +13,13 @@ type CurrencyPreferencesContextValue = {
 const CurrencyPreferencesContext = createContext<CurrencyPreferencesContextValue | null>(null);
 
 export function CurrencyPreferencesProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = useState<CurrencyDisplayMode>("usd");
-
-  useEffect(() => {
-    const savedMode = window.localStorage.getItem(STORAGE_KEY);
-    if (savedMode === "inr") {
-      setMode("inr");
+  const [mode, setMode] = useState<CurrencyDisplayMode>(() => {
+    if (typeof window === "undefined") {
+      return "usd";
     }
-  }, []);
+
+    return window.localStorage.getItem(STORAGE_KEY) === "inr" ? "inr" : "usd";
+  });
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, mode);
