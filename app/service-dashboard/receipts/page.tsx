@@ -77,7 +77,7 @@ async function getReceiptDashboardData(): Promise<ReceiptDashboardData> {
         currency: true,
         createdAt: true,
       },
-      orderBy: [desc(receipts.createdAt)],
+      orderBy: [desc(receipts.receiptDate), desc(receipts.createdAt)],
       limit: 10,
     });
 
@@ -141,39 +141,70 @@ export default async function ReceiptsDashboardPage() {
 
         <SectionCard title="Recent receipts" description="Open a receipt detail page directly from here.">
           {recentReceipts.length ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-y-2 text-sm">
-                <thead>
-                  <tr className="text-left text-[var(--muted)]">
-                    <th className="px-3 py-2">Receipt</th>
-                    <th className="px-3 py-2">Store</th>
-                    <th className="px-3 py-2">Date</th>
-                    <th className="px-3 py-2">Total</th>
-                    <th className="px-3 py-2">Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentReceipts.map((receipt) => (
-                    <tr key={receipt.id} className="bg-[var(--surface-soft)] text-[var(--text)]">
-                      <td className="rounded-l-[14px] px-3 py-3 font-semibold">#{receipt.id}</td>
-                      <td className="px-3 py-3">{receipt.storeName || "—"}</td>
-                      <td className="px-3 py-3">{formatReceiptDate(receipt.receiptDate, receipt.createdAt)}</td>
-                      <td className="px-3 py-3">
-                        <CurrencyAmount amount={receipt.total} currency={receipt.currency} />
-                      </td>
-                      <td className="rounded-r-[14px] px-3 py-3">
+            <>
+              <div className="space-y-3 md:hidden">
+                {recentReceipts.map((receipt) => (
+                  <div
+                    key={receipt.id}
+                    className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-[var(--text)]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-semibold">#{receipt.id} {receipt.storeName || "—"}</p>
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                          {formatReceiptDate(receipt.receiptDate, receipt.createdAt)}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-semibold">
+                          <CurrencyAmount amount={receipt.total} currency={receipt.currency} />
+                        </p>
                         <Link
                           href={`/service-dashboard/receipts/${receipt.id}`}
-                          className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+                          className="mt-2 inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
                         >
-                          View receipt
+                          View
                         </Link>
-                      </td>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+                  <thead>
+                    <tr className="text-left text-[var(--muted)]">
+                      <th className="px-3 py-2">Receipt</th>
+                      <th className="px-3 py-2">Store</th>
+                      <th className="px-3 py-2">Date</th>
+                      <th className="px-3 py-2">Total</th>
+                      <th className="px-3 py-2">Open</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {recentReceipts.map((receipt) => (
+                      <tr key={receipt.id} className="bg-[var(--surface-soft)] text-[var(--text)]">
+                        <td className="rounded-l-[14px] px-3 py-2 font-semibold">#{receipt.id}</td>
+                        <td className="px-3 py-2">{receipt.storeName || "—"}</td>
+                        <td className="px-3 py-2">{formatReceiptDate(receipt.receiptDate, receipt.createdAt)}</td>
+                        <td className="px-3 py-2 text-right font-medium tabular-nums">
+                          <CurrencyAmount amount={receipt.total} currency={receipt.currency} />
+                        </td>
+                        <td className="rounded-r-[14px] px-3 py-2 text-right">
+                          <Link
+                            href={`/service-dashboard/receipts/${receipt.id}`}
+                            className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+                          >
+                            View receipt
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <p className="text-sm leading-6 text-[var(--muted)]">
               No receipts are stored yet, so there is nothing to open. Once receipts exist, links will appear here.

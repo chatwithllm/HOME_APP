@@ -354,3 +354,23 @@ Implementation notes:
 
 Phase summary:
 - Core phased build from Phase 1 through Phase 10 is now implemented
+
+## Post-Phase UX Adjustments — Dashboard Recent Receipts
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Align the `/service-dashboard/receipts` Recent receipts section with the Receipt Queries experience so the list behaves consistently across phones, tablets, and wider desktop layouts.
+
+What changed:
+- Dashboard Recent receipts now uses the same responsive pattern as Receipt Queries:
+  - mobile renders compact stacked cards
+  - `md` and larger screens render a table
+- Desktop row styling preserves the soft row background without the white separator artifacts seen in prior iterations
+- Mobile cards were updated to match the two-line Receipt Queries layout instead of a custom three-line variant
+- Dashboard Recent receipts ordering now uses `receiptDate DESC` with `createdAt DESC` as a fallback instead of relying only on import time
+
+Validation completed:
+- Mobile and desktop layouts now follow the same visual pattern as Receipt Queries ✅
+- Recent receipts are sorted by receipt date with stable fallback ordering ✅
+- `npm run lint` pending branch validation
