@@ -759,3 +759,49 @@ Implementation notes:
 
 Next phase preview:
 - Phase 20 will add purchase intelligence and recommendations so the app can suggest buy-again patterns and surface more useful planning signals automatically
+
+## Current status after Phase 20
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+
+Pending next:
+- Phase 21 — Admin / Data Quality Dashboard
+- Phase 22 — Export / Backup / Portability
+
+## Phase 20 — Purchase Intelligence + Recommendations
+
+Status: Completed and verified locally.
+
+Objective:
+Add the first real purchase-intelligence layer so the app can surface useful recommendation candidates based on repeated buying behavior.
+
+What was built:
+- Added `app/api/shopping-recommendations/ignore/route.ts` for ignoring recommendation candidates
+- Added `components/shopping-recommendation-actions.tsx` to let recommendation candidates be ignored from the UI
+- Reworked `app/service-dashboard/shopping-plan/page.tsx` to surface recommendation candidates based on repeated purchase patterns
+- Excluded already planned items from recommendation candidates
+- Excluded ignored recommendation candidates from the surfaced list
+- Added recommendation context including purchase count, likely store, last purchased date, and average line total
+
+Validation completed:
+- `npm run build` ✅
+- Initial lint warning was fixed before packaging ✅
+- Manual local review confirmed the recommendation layer looks good ✅
+
+Implementation notes:
+- Phase 20 adds the first practical recommendation surface rather than just storing data structures for future use
+- Recommendation candidates are intentionally conservative and based on repeated purchases, not speculative heuristics
+- The shopping workflow now has a usable bridge between receipt history and future purchase suggestions
+
+Next phase preview:
+- Phase 21 will add an admin/data-quality dashboard so bad receipts, missing quantities, broken media, and suspicious totals can be surfaced systematically
