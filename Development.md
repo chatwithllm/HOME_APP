@@ -805,3 +805,49 @@ Implementation notes:
 
 Next phase preview:
 - Phase 21 will add an admin/data-quality dashboard so bad receipts, missing quantities, broken media, and suspicious totals can be surfaced systematically
+
+## Current status after Phase 21
+
+Completed:
+- Phase 11 — Production Build Readiness
+- Phase 12 — Vercel Deployment + Production Database
+- Phase 13 — Durable Receipt Media Storage
+- Phase 14 — Receipt Parsing Quality Rules
+- Phase 15 — Item Ledger Accuracy Upgrade
+- Phase 16 — Receipt Edit / Correction Tools
+- Phase 17 — Receipt Ingestion Improvements
+- Phase 18 — Search, Filters, and Query UX Upgrade
+- Phase 19 — Shopping Workflow v2
+- Phase 20 — Purchase Intelligence + Recommendations
+- Phase 21 — Admin / Data Quality Dashboard
+
+Pending next:
+- Phase 22 — Export / Backup / Portability
+
+## Phase 21 — Admin / Data Quality Dashboard
+
+Status: Completed and verified locally.
+
+Objective:
+Create a centralized admin surface for spotting receipt data problems such as totals mismatches, unresolved quantities, missing media, and empty item sets.
+
+What was built:
+- Added `app/service-dashboard/admin-quality/page.tsx`
+- Centralized receipt-audit checks into one dashboard view
+- Surfaced overview counts for totals mismatch, unresolved quantities, missing media, and missing items
+- Added grouped issue sections with direct links back to affected receipt detail pages
+- Reused centralized quantity-inference logic so unresolved quantity reporting matches the rest of the app
+
+Validation completed:
+- `npm run build` ✅
+- Initial lint warning was fixed during implementation ✅
+- Local route test confirmed `/service-dashboard/admin-quality` renders successfully ✅
+- Manual local review confirmed the dashboard looks good ✅
+
+Implementation notes:
+- Phase 21 consolidates quality signals that were previously scattered across individual receipt pages
+- The dashboard is designed for triage and cleanup, not deep analytics yet
+- This gives the app a practical quality-control surface before export/portability work in the final phase
+
+Next phase preview:
+- Phase 22 will add export, backup, and portability tools so receipt data is easier to move, inspect, and preserve outside the app
