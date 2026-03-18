@@ -448,12 +448,12 @@ Next phase preview:
 
 ## Phase 13 — Durable Receipt Media Storage
 
-Status: In progress.
+Status: Completed and verified on hosted preview.
 
 Objective:
 Move receipt media out of local `/Users/...` file-path storage and into durable hosted storage that works on the deployed Vercel app without exposing receipts publicly.
 
-Progress so far:
+What was built:
 - Created branch `phase-13-durable-receipt-media-storage`
 - Added Vercel Blob SDK dependency
 - Added `lib/receipt-media.ts` to centralize receipt media URL handling
@@ -462,10 +462,19 @@ Progress so far:
 - Added `scripts/migrate-receipt-media-to-blob.ts`
 - Added npm script `media:migrate:blob`
 - Switched migration uploads to `access: private`
+- Added `BLOB_READ_WRITE_TOKEN` to Vercel/private Blob workflow documentation
 - Ran receipt media migration successfully, rewriting stored local file references to private Vercel Blob URLs
-- Confirmed `npm run build` and `npm run lint` pass locally after the private-blob changes
 
-Remaining work:
-- Push the Phase 13 branch for Vercel preview deployment
-- Verify hosted receipt detail pages load private media correctly in preview/production
-- Update deployment docs with the private-blob serving flow
+Validation completed:
+- `npm run build` ✅
+- `npm run lint` ✅
+- Hosted Vercel preview deployment successfully loaded receipt media for `/service-dashboard/receipts/2` ✅
+- Private Blob media is now served through the app route instead of relying on public receipt URLs ✅
+
+Implementation notes:
+- Receipt media remains private in Vercel Blob storage
+- Browsers do not need direct blob credentials because the server route mediates access
+- Existing local-path receipts were migrated to private hosted Blob URLs
+
+Next phase preview:
+- Phase 14 will improve receipt parsing quality rules, especially quantity inference and duplicate-line handling for stores such as Costco
