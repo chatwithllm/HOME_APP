@@ -50,12 +50,27 @@ DATABASE_URL="postgres://USER:PASSWORD@HOST:5432/DBNAME?sslmode=require"
    - `/service-dashboard/items`
 6. Verify API/database-backed routes return expected results.
 
-## Known production caveat
+## Receipt media on hosted deployments
 
-Receipt media currently may reference local file paths such as `/Users/...`.
-That works on the local machine, but it is not durable on Vercel serverless runtimes.
+Receipt media is now intended to be stored in Vercel Blob.
 
-To make receipt media production-safe, move images/PDFs to durable hosted storage and store a hosted URL or storage key in the database.
+### Private Blob setup
+
+If you want receipt images/PDFs to remain private:
+- create a Vercel Blob store with **Private** access
+- add `BLOB_READ_WRITE_TOKEN` to local env and Vercel project env vars
+- run the migration script locally:
+
+```bash
+npm run media:migrate:blob
+```
+
+The app serves private Blob media through `/api/receipt-media/[id]`, so browsers do not need direct blob credentials.
+
+### Why this matters
+
+Local file paths such as `/Users/...` work on the local machine, but they are not durable on Vercel serverless runtimes.
+Moving receipt media into private Blob storage keeps the files hosted while avoiding public receipt URLs.
 
 ## Quick verification commands
 

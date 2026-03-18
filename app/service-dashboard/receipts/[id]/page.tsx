@@ -9,6 +9,7 @@ import { StoreTypeSelector } from "@/components/store-type-selector";
 import { createDb } from "@/db/client";
 import { receiptItems, receipts, storeProfiles } from "@/db/schema";
 import { buildInferredQuantityMap } from "@/lib/receipt-item-quantity";
+import { getReceiptMediaSrc } from "@/lib/receipt-media";
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) {
@@ -42,26 +43,6 @@ function getReceiptMediaKind(path?: string | null) {
   }
 
   return "other";
-}
-
-function getReceiptMediaSrc(receiptId: number, mediaPath?: string | null) {
-  if (!mediaPath) {
-    return null;
-  }
-
-  if (mediaPath.startsWith("http://") || mediaPath.startsWith("https://")) {
-    return mediaPath;
-  }
-
-  if (mediaPath.startsWith("/Users/")) {
-    return `/api/receipt-media/${receiptId}`;
-  }
-
-  if (mediaPath.startsWith("/")) {
-    return mediaPath;
-  }
-
-  return null;
 }
 
 async function getReceiptDetail(id: number) {
