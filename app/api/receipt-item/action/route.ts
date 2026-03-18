@@ -119,6 +119,7 @@ export async function POST(request: Request) {
         id: true,
         description: true,
         quantity: true,
+        lineTotal: true,
       },
       where: eq(receiptItems.receiptId, item.receiptId),
     });
