@@ -414,3 +414,34 @@ Implementation notes:
 
 Next phase preview:
 - Phase 12 will connect the app to Vercel and a production database for a real hosted URL
+
+## Phase 12 — Vercel Deployment + Production Database
+
+Status: Completed with first hosted deployment live.
+
+Objective:
+Connect the app to Vercel and production-ready database settings so it can be reached on a real hosted URL instead of localhost.
+
+What was built:
+- Created branch `phase-12-vercel-deployment-production-db`
+- Verified live PostgreSQL connectivity with `npm run db:test`
+- Added `.env.example` documenting the required `DATABASE_URL`
+- Added `VERCEL_DEPLOYMENT.md` with deployment steps, required settings, and current production caveats
+- Guided initial Vercel project creation and GitHub import flow
+- Configured production environment variables in Vercel using the existing PostgreSQL connection string
+- Completed first hosted deployment at `https://home-app-bice.vercel.app/`
+
+Validation completed:
+- Hosted homepage loads ✅
+- Hosted `/service-dashboard/receipts` loads with live receipt metrics and rows ✅
+- Hosted `/service-dashboard/receipt-query` loads with live query results ✅
+- Hosted `/service-dashboard/items` loads with live consolidated item data ✅
+- Local `npm run db:test` passed against PostgreSQL ✅
+
+Implementation notes:
+- The app is now accessible on a real Vercel URL and reading from PostgreSQL successfully
+- `vercel` CLI was not required because the project was created through the Vercel UI
+- Receipt media that depends on local `/Users/...` file paths remains a production caveat and should be addressed in Phase 13
+
+Next phase preview:
+- Phase 13 will move receipt media to durable hosted storage so images/PDFs work reliably on the deployed app
