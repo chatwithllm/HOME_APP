@@ -31,6 +31,7 @@ type Recommendation = {
   preferredStore: string;
   lastPurchasedAt: Date;
   averageLineTotal: number | null;
+  suggestedQty: number;
 };
 
 function money(value: number | null | undefined) {
@@ -114,6 +115,7 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
         .select({
           receiptItemId: receiptItems.id,
           itemName: receiptItems.description,
+          quantity: receiptItems.quantity,
           lineTotal: receiptItems.lineTotal,
           storeName: receipts.storeName,
           receiptDate: receipts.receiptDate,
@@ -136,6 +138,7 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
         lastPurchasedAt: Date;
         lineTotalSum: number;
         lineTotalCount: number;
+        suggestedQty: number;
       }
     >();
 
@@ -148,6 +151,7 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
       const purchasedAt = row.receiptDate ?? row.createdAt;
       const storeName = row.storeName?.trim() || "Unknown";
       const lineTotal = row.lineTotal == null ? null : Number(row.lineTotal);
+      const suggestedQty = row.quantity == null ? 1 : Number(row.quantity);
       const existing = grouped.get(normalizedName);
 
       if (!existing) {
@@ -158,6 +162,7 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
           lastPurchasedAt: purchasedAt,
           lineTotalSum: lineTotal ?? 0,
           lineTotalCount: lineTotal != null ? 1 : 0,
+          suggestedQty,
         });
         continue;
       }
@@ -167,6 +172,7 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
         existing.lastPurchasedAt = purchasedAt;
         existing.itemName = row.itemName;
         existing.preferredStore = storeName;
+        existing.suggestedQty = suggestedQty;
       }
       if (lineTotal != null) {
         existing.lineTotalSum += lineTotal;
@@ -182,6 +188,7 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
         preferredStore: group.preferredStore,
         lastPurchasedAt: group.lastPurchasedAt,
         averageLineTotal: group.lineTotalCount ? group.lineTotalSum / group.lineTotalCount : null,
+        suggestedQty: group.suggestedQty,
       }))
       .filter((row) => row.purchaseCount >= 2)
       .sort((a, b) => {
@@ -247,6 +254,7 @@ export default async function ShoppingPlanPage() {
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--muted)]">
                         <span><span className="font-semibold">Likely store:</span> {item.preferredStore}</span>
+                        <span><span className="font-semibold">Suggested qty:</span> {item.suggestedQty}</span>
                         <span><span className="font-semibold">Last bought:</span> {formatDate(item.lastPurchasedAt)}</span>
                         <span><span className="font-semibold">Avg line total:</span> {money(item.averageLineTotal)}</span>
                       </div>
@@ -257,6 +265,7 @@ export default async function ShoppingPlanPage() {
                         normalizedName={item.normalizedName}
                         itemName={item.itemName}
                         preferredStore={item.preferredStore}
+                        suggestedQty={item.suggestedQty}
                       />
                     </div>
                   </div>

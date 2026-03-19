@@ -1000,7 +1000,7 @@ Planned work:
 Completion looks like:
 - the app becomes easier to plug into broader workflows instead of remaining a self-contained island
 
-## Current status after Phase 23
+## Current status after Phase 24
 
 Completed:
 - Phase 11 — Production Build Readiness
@@ -1016,9 +1016,9 @@ Completed:
 - Phase 21 — Admin / Data Quality Dashboard
 - Phase 22 — Export / Backup / Portability
 - Phase 23 — Admin Navigation + Discoverability
+- Phase 24 — Recommendation Actions + Workflow Loop Closure
 
 Pending next:
-- Phase 24 — Recommendation Actions + Workflow Loop Closure
 - Phase 25 — Export Granularity + Scheduled Backup UX
 - Phase 26 — Receipt Ingestion / Parser Confidence v2
 - Phase 27 — Store Intelligence + Merchant Profiles
@@ -1047,8 +1047,33 @@ Implementation notes:
 - Admin surfaces are now meaningfully easier to find without cluttering the rest of the app too aggressively
 - Export remains reachable through Admin Quality until a more formal admin navigation structure is warranted
 
+## Phase 24 — Recommendation Actions + Workflow Loop Closure
+
+Status: Completed and verified locally.
+
+Objective:
+Turn recommendation cards into actionable workflow inputs instead of read-only suggestions.
+
+What was built:
+- Added `app/api/shopping-recommendations/plan/route.ts`
+- Updated `components/shopping-recommendation-actions.tsx` so recommendations can be added directly into the shopping workflow
+- Added duplicate-safe handling so already-planned items do not create duplicate plan entries
+- Wired recommendation quantity through to the created shopping-plan item
+- Updated recommendation cards to show suggested quantity before adding to plan
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- Manual local review confirmed recommendation cards can add to plan cleanly ✅
+- Manual local review confirmed quantity now carries through into Buy Again items ✅
+
+Implementation notes:
+- Phase 24 closes the loop between recommendation insight and shopping-plan execution
+- The recommendation layer is now operational rather than merely advisory
+- The next best follow-on is improving export flexibility and backup UX
+
 ## Notes for future restart
 - The original Phase 11–22 roadmap is complete and merged to `main`.
-- Phase 23 is now complete on branch as the first follow-on roadmap item.
-- The most obvious immediate next step is **Phase 24 — Recommendation Actions + Workflow Loop Closure**.
-- If choosing only one next step for user-visible usefulness, do Phase 24 first.
+- Phase 23 is complete and merged to `main`.
+- Phase 24 is complete on branch and ready for merge decision.
+- The most obvious immediate next step after Phase 24 is **Phase 25 — Export Granularity + Scheduled Backup UX**.
