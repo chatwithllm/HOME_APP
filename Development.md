@@ -1000,7 +1000,7 @@ Planned work:
 Completion looks like:
 - the app becomes easier to plug into broader workflows instead of remaining a self-contained island
 
-## Current status after Phase 26
+## Current status after Phase 25
 
 Completed:
 - Phase 11 — Production Build Readiness
@@ -1017,10 +1017,10 @@ Completed:
 - Phase 22 — Export / Backup / Portability
 - Phase 23 — Admin Navigation + Discoverability
 - Phase 24 — Recommendation Actions + Workflow Loop Closure
+- Phase 25 — Export Granularity + Scheduled Backup UX
 - Phase 26 — Receipt Ingestion / Parser Confidence v2
 
 Pending next:
-- Phase 25 — Export Granularity + Scheduled Backup UX
 - Phase 27 — Store Intelligence + Merchant Profiles
 - Phase 28 — Automation / Integrations Follow-through
 
@@ -1098,8 +1098,36 @@ Implementation notes:
 - Admin-quality triage can now distinguish receipts that imported successfully from receipts that imported suspiciously
 - The next most natural follow-on remains Phase 25 for export granularity and backup UX, unless roadmap priority changes again on purpose
 
+## Phase 25 — Export Granularity + Scheduled Backup UX
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Make export and backup more flexible than one blunt full-dataset dump by adding useful filters, items-only export modes, and a clearer local backup workflow.
+
+What was built:
+- Upgraded `app/api/export/route.ts` to support filtered export by `from`, `to`, `store`, and `receiptIds`
+- Added `mode=full|items` so export can return either full receipt envelopes or item-only datasets
+- Added filtered JSON and CSV output paths with export filenames that reflect the selected scope
+- Updated `app/service-dashboard/export/page.tsx` with a filter form for date range, store, and receipt IDs
+- Added export options for full JSON, full CSV, items-only JSON, and items-only CSV
+- Added visible filter summary and lightweight local backup guidance with copyable `curl` examples
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- `npm run db:test` ✅
+
+Implementation notes:
+- Phase 25 keeps the export system simple by extending the existing route instead of introducing a separate backup subsystem
+- Items-only mode makes spreadsheet and downstream analysis easier when full receipt wrappers are unnecessary
+- Local backup guidance is now explicit enough to be repeatable instead of living as vague tribal knowledge
+- The next most natural follow-on is Phase 27 — Store Intelligence + Merchant Profiles
+
 ## Notes for future restart
 - The original Phase 11–22 roadmap is complete and merged to `main`.
 - Phase 23 is complete and merged to `main`.
-- Phase 24 is complete on branch and ready for merge decision.
-- The most obvious immediate next step after Phase 24 is **Phase 25 — Export Granularity + Scheduled Backup UX**.
+- Phase 24 is complete and merged to `main`.
+- Phase 25 is complete locally and pending branch push / merge decision.
+- Phase 26 is complete and merged to `main`.
+- The most obvious immediate next step after Phase 25 is **Phase 27 — Store Intelligence + Merchant Profiles**.

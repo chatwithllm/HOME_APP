@@ -5,7 +5,8 @@ This note is the quick restart file for unfinished work after the completed Phas
 ## In Progress
 
 - No phase is currently mid-implementation.
-- Phase 26 — Receipt Ingestion / Parser Confidence v2 is completed locally and ready for branch/push/merge review.
+- Phase 25 — Export Granularity + Scheduled Backup UX is completed locally and ready for branch/push/merge review.
+- Phase 26 — Receipt Ingestion / Parser Confidence v2 is completed and merged to `main`.
 - Anything drafted after Phase 24 was intentionally discarded so future work restarts from a clean baseline.
 - Per workflow: update docs before starting, update docs again after completion, test locally before branching, then push and ask before merge.
 
@@ -13,14 +14,10 @@ This note is the quick restart file for unfinished work after the completed Phas
 - Original Phase 11–22 roadmap: complete and merged to `main`
 - Phase 23 — Admin Navigation + Discoverability: complete and merged to `main`
 - Phase 24 — Recommendation Actions + Workflow Loop Closure: complete and merged to `main`
-- Phase 26 — Receipt Ingestion / Parser Confidence v2: completed locally, awaiting branch push and merge decision
+- Phase 25 — Export Granularity + Scheduled Backup UX: completed locally, awaiting branch push and merge decision
+- Phase 26 — Receipt Ingestion / Parser Confidence v2: complete and merged to `main`
 
 ## Pending Next
-
-### Phase 25 — Export Granularity + Scheduled Backup UX
-- filtered exports (date range, store, subset, items-only where useful)
-- better backup workflow UX
-- possible repeatable local backup path/script
 
 ### Phase 27 — Store Intelligence + Merchant Profiles
 - richer merchant/store behavior
