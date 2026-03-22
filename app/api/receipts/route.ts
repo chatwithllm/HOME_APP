@@ -13,6 +13,24 @@ const numericField = z
     return typeof value === "number" ? value.toFixed(2) : value;
   });
 
+const boundedConfidenceField = z
+  .union([z.number(), z.string()])
+  .transform((value) => (typeof value === "number" ? value : Number(value)))
+  .refine((value) => Number.isFinite(value) && value >= 0 && value <= 1, "Confidence must be between 0 and 1");
+
+const parserMetadataSchema = z.object({
+  source: z.string().trim().min(1).optional(),
+  name: z.string().trim().min(1).optional(),
+  version: z.string().trim().min(1).optional(),
+}).partial();
+
+const itemParseMetaSchema = z.object({
+  confidence: z.record(z.string(), boundedConfidenceField).optional(),
+  warnings: z.array(z.string().trim().min(1)).optional(),
+  rawLine: z.string().optional(),
+  inferredFields: z.array(z.string().trim().min(1)).optional(),
+}).partial();
+
 const receiptItemPayloadSchema = z.object({
   lineNumber: z.number().int().positive().optional(),
   description: z.string().trim().min(1),
@@ -31,6 +49,7 @@ const receiptItemPayloadSchema = z.object({
   unitPrice: numericField.optional(),
   lineTotal: numericField.optional(),
   metaJson: z.record(z.string(), z.unknown()).optional(),
+  parseMeta: itemParseMetaSchema.optional(),
 });
 
 const receiptPayloadSchema = z.object({
@@ -57,6 +76,11 @@ const receiptPayloadSchema = z.object({
   notes: z.string().optional(),
   rawText: z.string().optional(),
   structuredJson: z.record(z.string(), z.unknown()).optional(),
+  parser: parserMetadataSchema.optional(),
+  confidence: z.record(z.string(), boundedConfidenceField).optional(),
+  overallConfidence: boundedConfidenceField.optional(),
+  warnings: z.array(z.string().trim().min(1)).optional(),
+  qualityFlags: z.array(z.string().trim().min(1)).optional(),
   items: z.array(receiptItemPayloadSchema).optional(),
 });
 
@@ -76,13 +100,35 @@ export async function POST(request: Request) {
   try {
     const parsedBody = await parseJsonBody(request);
     const payload = receiptPayloadSchema.parse(parsedBody);
+    const items = payload.items ?? [];
+    const hasMeaningfulReceiptFields = Boolean(
+      payload.storeName || payload.receiptDate || payload.total || payload.subtotal || payload.tax || payload.rawText,
+    );
+    const hasMeaningfulItems = items.some((item) => Boolean(item.description || item.lineTotal || item.unitPrice));
+
+    if (!hasMeaningfulReceiptFields && !hasMeaningfulItems) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Receipt payload must include meaningful receipt fields or items",
+        },
+        { status: 400 },
+      );
+    }
 
     const connection = createDb();
     pool = connection.pool;
 
     const inserted = await connection.db.transaction(async (tx) => {
-      const items = payload.items ?? [];
       const derivedItemCount = items.length;
+      const qualityMetadata = {
+        ...(payload.structuredJson ?? {}),
+        ...(payload.parser ? { parser: payload.parser } : {}),
+        ...(payload.confidence ? { confidence: payload.confidence } : {}),
+        ...(payload.overallConfidence != null ? { overallConfidence: payload.overallConfidence } : {}),
+        ...(payload.warnings?.length ? { warnings: payload.warnings } : {}),
+        ...(payload.qualityFlags?.length ? { qualityFlags: payload.qualityFlags } : {}),
+      };
 
       const insertPayload = {
         sourceChannel: payload.sourceChannel,
@@ -101,7 +147,7 @@ export async function POST(request: Request) {
         optionsMode: payload.optionsMode,
         notes: payload.notes,
         rawText: payload.rawText,
-        structuredJson: payload.structuredJson ?? {},
+        structuredJson: qualityMetadata,
       };
 
       const receiptInsert = await tx.insert(receipts).values(insertPayload).returning({ id: receipts.id });
@@ -120,7 +166,10 @@ export async function POST(request: Request) {
             quantity: item.quantity ?? null,
             unitPrice: item.unitPrice ?? null,
             lineTotal: item.lineTotal ?? null,
-            metaJson: item.metaJson ?? {},
+            metaJson: {
+              ...(item.metaJson ?? {}),
+              ...(item.parseMeta ? item.parseMeta : {}),
+            },
           })),
         );
       }

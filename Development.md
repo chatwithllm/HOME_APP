@@ -1000,7 +1000,7 @@ Planned work:
 Completion looks like:
 - the app becomes easier to plug into broader workflows instead of remaining a self-contained island
 
-## Current status after Phase 24
+## Current status after Phase 26
 
 Completed:
 - Phase 11 — Production Build Readiness
@@ -1017,10 +1017,10 @@ Completed:
 - Phase 22 — Export / Backup / Portability
 - Phase 23 — Admin Navigation + Discoverability
 - Phase 24 — Recommendation Actions + Workflow Loop Closure
+- Phase 26 — Receipt Ingestion / Parser Confidence v2
 
 Pending next:
 - Phase 25 — Export Granularity + Scheduled Backup UX
-- Phase 26 — Receipt Ingestion / Parser Confidence v2
 - Phase 27 — Store Intelligence + Merchant Profiles
 - Phase 28 — Automation / Integrations Follow-through
 
@@ -1071,6 +1071,32 @@ Implementation notes:
 - Phase 24 closes the loop between recommendation insight and shopping-plan execution
 - The recommendation layer is now operational rather than merely advisory
 - The next best follow-on is improving export flexibility and backup UX
+
+## Phase 26 — Receipt Ingestion / Parser Confidence v2
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Reduce downstream cleanup by making upstream ingestion smarter and more explainable, especially when receipt payloads are partial or uncertain.
+
+What was built:
+- Added `lib/receipt-parse-quality.ts` to centralize parser metadata, confidence extraction, low-confidence thresholds, and warning parsing
+- Upgraded `app/api/receipts/route.ts` to accept parser metadata, confidence maps, overall confidence, warnings, quality flags, and item-level parse metadata
+- Preserved item-level parse metadata in `receipt_items.metaJson` so uncertainty is stored instead of discarded
+- Added meaningful-payload rejection so obviously empty intake payloads fail cleanly instead of pretending to ingest something useful
+- Updated `app/service-dashboard/receipts/[id]/page.tsx` to show parser source/version, overall confidence, warning flags, field-confidence chips, and item-level low-confidence hints
+- Updated `app/service-dashboard/admin-quality/page.tsx` to audit low-confidence receipts based on parser warnings, quality flags, weak core-field confidence, and low-confidence item metadata
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- `npm run db:test` ✅
+
+Implementation notes:
+- Phase 26 intentionally uses existing `structuredJson` and `metaJson` fields instead of adding a schema migration
+- Receipt intake is now more honest about uncertainty rather than flattening parser ambiguity into fake certainty
+- Admin-quality triage can now distinguish receipts that imported successfully from receipts that imported suspiciously
+- The next most natural follow-on remains Phase 25 for export granularity and backup UX, unless roadmap priority changes again on purpose
 
 ## Notes for future restart
 - The original Phase 11–22 roadmap is complete and merged to `main`.

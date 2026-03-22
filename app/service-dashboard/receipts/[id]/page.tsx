@@ -11,6 +11,7 @@ import { StoreTypeSelector } from "@/components/store-type-selector";
 import { createDb } from "@/db/client";
 import { receiptItems, receipts, storeProfiles } from "@/db/schema";
 import { buildInferredQuantityDetailsMap, summarizeInferredQuantities } from "@/lib/receipt-item-quantity";
+import { getReceiptParseSummary, getItemParseSummary, isLowConfidence } from "@/lib/receipt-parse-quality";
 import { getReceiptMediaSrc } from "@/lib/receipt-media";
 
 function formatDate(value: Date | string | null | undefined) {
@@ -101,6 +102,9 @@ export default async function ReceiptDetailPage({
   const { receipt, items, storeProfile } = detail;
   const inferredQuantityByItemId = buildInferredQuantityDetailsMap(items, receipt.storeName);
   const quantitySummary = summarizeInferredQuantities(items, receipt.storeName);
+  const parseSummary = getReceiptParseSummary(receipt.structuredJson);
+  const itemParseSummaries = new Map(items.map((item) => [item.id, getItemParseSummary(item.metaJson)]));
+  const lowConfidenceItemCount = [...itemParseSummaries.values()].filter((summary) => summary.lowConfidenceFields.length > 0).length;
   const totalAmount = Number(receipt.total ?? 0);
   const subtotalAmount = Number(receipt.subtotal ?? 0);
   const taxAmount = Number(receipt.tax ?? 0);
@@ -220,11 +224,13 @@ export default async function ReceiptDetailPage({
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Parse quality</p>
                   <p className="mt-2 text-base font-semibold text-[var(--text)]">
                     {quantitySummary.unresolvedCount} unresolved qty · {zeroUnitPriceCount} zero-price lines
+                    {parseSummary.overallConfidence != null ? ` · ${Math.round(parseSummary.overallConfidence * 100)}% overall confidence` : ""}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                     Qty coverage: {quantitySummary.explicitCount} explicit, {quantitySummary.duplicateLineCount} duplicate-inferred,
                     {" "}
                     {quantitySummary.costcoDefaultCount} Costco-defaulted.
+                    {lowConfidenceItemCount ? ` ${lowConfidenceItemCount} item${lowConfidenceItemCount === 1 ? "" : "s"} flagged low-confidence.` : ""}
                   </p>
                 </div>
 
@@ -248,6 +254,49 @@ export default async function ReceiptDetailPage({
               </div>
             </SectionCard>
 
+            <SectionCard title="Parser quality" description="Confidence, parser metadata, and warnings captured during intake.">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Parser</p>
+                  <p className="mt-2 text-base font-semibold text-[var(--text)]">
+                    {parseSummary.parserName || parseSummary.parserSource || "Unknown parser"}
+                    {parseSummary.parserVersion ? ` · ${parseSummary.parserVersion}` : ""}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    Overall confidence: {parseSummary.overallConfidence != null ? `${Math.round(parseSummary.overallConfidence * 100)}%` : "Not provided"}
+                  </p>
+                </div>
+                <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Warnings</p>
+                  {parseSummary.warnings.length || parseSummary.qualityFlags.length ? (
+                    <ul className="mt-2 space-y-1 text-sm leading-6 text-[var(--text)]">
+                      {[...parseSummary.warnings, ...parseSummary.qualityFlags].map((warning) => (
+                        <li key={warning}>• {warning}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">No parser warnings were stored for this receipt.</p>
+                  )}
+                </div>
+              </div>
+
+              {!!Object.keys(parseSummary.confidence).length && (
+                <div className="mt-4 rounded-[16px] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Field confidence</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {Object.entries(parseSummary.confidence).map(([field, value]) => (
+                      <span
+                        key={field}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${isLowConfidence(value) ? "bg-[rgba(190,24,24,0.12)] text-[rgb(153,27,27)]" : "bg-[rgba(59,130,246,0.10)] text-[rgb(30,64,175)]"}`}
+                      >
+                        {field}: {Math.round(value * 100)}%
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </SectionCard>
+
             <SectionCard
               title="Items"
               description="Line items extracted for this receipt."
@@ -255,7 +304,10 @@ export default async function ReceiptDetailPage({
             >
               {items.length ? (
                 <div className="space-y-3 lg:flex lg:flex-1 lg:flex-col">
-                  {items.map((item, index) => (
+                  {items.map((item, index) => {
+                    const itemParse = itemParseSummaries.get(item.id);
+
+                    return (
                     <div
                       key={item.id}
                       className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 shadow-[0_8px_20px_rgba(67,40,24,0.06)]"
@@ -280,6 +332,16 @@ export default async function ReceiptDetailPage({
                         </div>
                       </div>
 
+                      {(itemParse?.lowConfidenceFields.length || itemParse?.warnings.length || itemParse?.rawLine) ? (
+                        <div className="mt-3 rounded-[12px] border border-[rgba(190,24,24,0.14)] bg-[rgba(254,242,242,0.9)] p-3 text-xs leading-6 text-[rgb(127,29,29)]">
+                          {itemParse?.lowConfidenceFields.length ? (
+                            <p>Low-confidence fields: {itemParse.lowConfidenceFields.join(", ")}</p>
+                          ) : null}
+                          {itemParse?.warnings.length ? <p>Warnings: {itemParse.warnings.join(", ")}</p> : null}
+                          {itemParse?.rawLine ? <p>Raw line: {itemParse.rawLine}</p> : null}
+                        </div>
+                      ) : null}
+
                       <div className="mt-3 space-y-2 rounded-[12px] bg-[rgba(255,241,191,0.35)] p-2">
                         <ReceiptItemEditor
                           receiptItemId={item.id}
@@ -293,7 +355,7 @@ export default async function ReceiptDetailPage({
                         <ReceiptItemActions receiptItemId={item.id} />
                       </div>
                     </div>
-                  ))}
+                  );})}
                 </div>
               ) : (
                 <p className="text-sm leading-6 text-[var(--muted)]">No receipt items saved for this receipt yet.</p>

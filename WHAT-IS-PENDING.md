@@ -5,12 +5,15 @@ This note is the quick restart file for unfinished work after the completed Phas
 ## In Progress
 
 - No phase is currently mid-implementation.
+- Phase 26 — Receipt Ingestion / Parser Confidence v2 is completed locally and ready for branch/push/merge review.
 - Anything drafted after Phase 24 was intentionally discarded so future work restarts from a clean baseline.
+- Per workflow: update docs before starting, update docs again after completion, test locally before branching, then push and ask before merge.
 
 ## Completed already
 - Original Phase 11–22 roadmap: complete and merged to `main`
 - Phase 23 — Admin Navigation + Discoverability: complete and merged to `main`
 - Phase 24 — Recommendation Actions + Workflow Loop Closure: complete and merged to `main`
+- Phase 26 — Receipt Ingestion / Parser Confidence v2: completed locally, awaiting branch push and merge decision
 
 ## Pending Next
 
@@ -18,11 +21,6 @@ This note is the quick restart file for unfinished work after the completed Phas
 - filtered exports (date range, store, subset, items-only where useful)
 - better backup workflow UX
 - possible repeatable local backup path/script
-
-### Phase 26 — Receipt Ingestion / Parser Confidence v2
-- parser confidence / quality hints
-- better handling for uncertain payloads
-- clearer upstream quality signals
 
 ### Phase 27 — Store Intelligence + Merchant Profiles
 - richer merchant/store behavior
