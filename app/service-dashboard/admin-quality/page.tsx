@@ -4,6 +4,7 @@ import { AppShell, SectionCard } from "@/components/shell";
 import { createDb } from "@/db/client";
 import { receipts } from "@/db/schema";
 import { buildInferredQuantityDetailsMap } from "@/lib/receipt-item-quantity";
+import { getItemParseSummary, getReceiptQualityFlagCount } from "@/lib/receipt-parse-quality";
 
 type ReceiptAuditRow = {
   receiptId: number;
@@ -17,6 +18,11 @@ type ReceiptAuditRow = {
   unresolvedQtyCount: number;
   zeroPriceCount: number;
   itemCount: number;
+  warningCount: number;
+  qualityFlagCount: number;
+  lowConfidenceCoreFieldCount: number;
+  lowConfidenceItemCount: number;
+  isLowConfidenceReceipt: boolean;
 };
 
 function formatDate(value: Date | null, fallback: Date) {
@@ -56,6 +62,7 @@ async function getAuditData() {
           description: true,
           quantity: true,
           lineTotal: true,
+          metaJson: true,
         },
         where: (fields, { eq }) => eq(fields.receiptId, receipt.id),
       });
@@ -63,6 +70,10 @@ async function getAuditData() {
       const inferred = buildInferredQuantityDetailsMap(items, receipt.storeName);
       const unresolvedQtyCount = [...inferred.values()].filter((item) => item.source === "unresolved").length;
       const zeroPriceCount = items.filter((item) => Number(item.lineTotal ?? 0) === 0).length;
+      const receiptQuality = getReceiptQualityFlagCount(receipt.structuredJson);
+      const lowConfidenceItemCount = items
+        .map((item) => getItemParseSummary(item.metaJson))
+        .filter((item) => item.lowConfidenceFields.length > 0 || item.warnings.length > 0).length;
 
       results.push({
         receiptId: receipt.id,
@@ -76,6 +87,11 @@ async function getAuditData() {
         unresolvedQtyCount,
         zeroPriceCount,
         itemCount: items.length,
+        warningCount: receiptQuality.warningCount,
+        qualityFlagCount: receiptQuality.qualityFlagCount,
+        lowConfidenceCoreFieldCount: receiptQuality.lowConfidenceCoreFieldCount,
+        lowConfidenceItemCount,
+        isLowConfidenceReceipt: receiptQuality.isLowConfidenceReceipt || lowConfidenceItemCount > 0,
       });
     }
 
@@ -90,6 +106,7 @@ export default async function AdminQualityPage() {
 
   const totalsMismatch = rows.filter((row) => Math.abs(row.subtotal + row.tax - row.total) >= 0.02);
   const unresolvedQty = rows.filter((row) => row.unresolvedQtyCount > 0);
+  const lowConfidenceReceipts = rows.filter((row) => row.isLowConfidenceReceipt);
   const missingMedia = rows.filter((row) => !row.imagePath);
   const missingItems = rows.filter((row) => row.itemCount === 0);
 
@@ -118,6 +135,10 @@ export default async function AdminQualityPage() {
             <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Unresolved qty</p>
               <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{unresolvedQty.length}</p>
+            </div>
+            <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Low confidence</p>
+              <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{lowConfidenceReceipts.length}</p>
             </div>
             <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Missing media</p>
@@ -167,6 +188,28 @@ export default async function AdminQualityPage() {
             </div>
           ) : (
             <p className="text-sm leading-6 text-[var(--muted)]">No unresolved quantities found.</p>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Low-confidence receipts" description="Receipts with parser warnings, quality flags, or weak field confidence.">
+          {lowConfidenceReceipts.length ? (
+            <div className="space-y-3">
+              {lowConfidenceReceipts.map((row) => (
+                <div key={row.receiptId} className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-[var(--text)]">#{row.receiptId} {row.storeName || "Unknown store"}</p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        {formatDate(row.receiptDate, row.createdAt)} · {row.warningCount} warnings · {row.qualityFlagCount} quality flags · {row.lowConfidenceCoreFieldCount} low-confidence core fields · {row.lowConfidenceItemCount} low-confidence items
+                      </p>
+                    </div>
+                    <Link href={`/service-dashboard/receipts/${row.receiptId}`} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]">Open</Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm leading-6 text-[var(--muted)]">No low-confidence receipts found.</p>
           )}
         </SectionCard>
 
