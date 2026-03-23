@@ -174,17 +174,19 @@ Merged `main` already has:
 At the moment of writing this guide, there is **local in-progress work** for:
 
 ### Phase 31 — Structured Receipt Parsing + Review Screen
-Local code exists for:
+Local implementation exists for:
 - raw OCR text → structured draft parsing
 - draft review UI on upload page
 - correction before save
 - saving reviewed receipts into `/api/receipts`
+- local validation already passing
 
 ### Also locally in progress
-A **Vercel compatibility / Phase A** storage change exists locally:
+A **Phase 32 — Blob-backed Upload Storage for Vercel** change exists locally:
 - upload route prefers **Vercel Blob** when `BLOB_READ_WRITE_TOKEN` exists
 - otherwise falls back to local storage
 - upload UI displays `storage: blob|local`
+- local validation already passing
 
 ### Important status note
 These local changes were **not formally wrapped up** at the time of this guide.
