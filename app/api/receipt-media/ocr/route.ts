@@ -4,6 +4,7 @@ import path from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { randomUUID } from "crypto";
+import { get as getBlob } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -35,15 +36,24 @@ function isRemoteUrl(value: string) {
 }
 
 async function downloadRemoteFile(fileUrl: string, contentType?: string) {
-  const response = await fetch(fileUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to download remote file: ${response.status} ${response.statusText}`);
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("BLOB_READ_WRITE_TOKEN is required to read private Blob files for OCR");
   }
 
-  const derivedType = contentType || response.headers.get("content-type") || "application/octet-stream";
+  const response = await getBlob(fileUrl, {
+    access: "private",
+    token: process.env.BLOB_READ_WRITE_TOKEN,
+  });
+
+  if (!response) {
+    throw new Error("Blob file not found for OCR");
+  }
+
+  const derivedType = contentType || response.blob.contentType || "application/octet-stream";
   const extension = derivedType.includes("pdf") ? ".pdf" : ".png";
   const tempPath = path.join(os.tmpdir(), `receipt-ocr-${randomUUID()}${extension}`);
-  const buffer = Buffer.from(await response.arrayBuffer());
+  const arrayBuffer = await new Response(response.stream).arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
   await fs.writeFile(tempPath, buffer);
 
   return {
