@@ -16,7 +16,7 @@
 
 ### Local work in progress
 - **Phase 31 — Structured Receipt Parsing + Review Screen**
-- **Phase A — Blob-backed upload storage for Vercel compatibility**
+- **Phase 32 — Blob-backed Upload Storage for Vercel**
 
 These have local implementation work and passing local validation, but are **not yet formally wrapped up/branched/pushed/merged** in the current state captured by the restart guide.
 
@@ -1332,3 +1332,4 @@ Planned work:
 Completion looks like:
 - failed uploads do not vanish into sadness
 - operators can see and recover failed processing attempts
+empts

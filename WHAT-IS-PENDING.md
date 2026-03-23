@@ -29,37 +29,35 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 
 ## Pending Next
 
-### Product roadmap
-#### Phase 31 — Structured Receipt Parsing + Review Screen
+### Phase 31 — Structured Receipt Parsing + Review Screen
 - parse OCR text into structured receipt draft
 - show warnings and confidence
 - review/correct screen before final save
 
-#### Phase 32 — Final Save Flow + Dashboard Integration
-- save reviewed upload into existing receipt pipeline
-- redirect into receipt detail/dashboard flows
-- preserve media path, raw text, structured JSON, and items
-
-#### Phase 33 — Upload Reliability, Retry, and Reprocessing
-- retry/reprocess failed OCR or parsing runs
-- processing state visibility
-- admin/operator visibility into failed uploads
-
-### Deployment compatibility track
-#### Phase A — Blob-backed upload storage
+### Phase 32 — Blob-backed Upload Storage for Vercel
 - prefer Vercel Blob over local disk when `BLOB_READ_WRITE_TOKEN` exists
 - keep local fallback for development
 - expose storage mode in upload UI/API
 
-#### Phase B — OCR abstraction + remote worker path
+### Phase 33 — OCR Abstraction + Remote Worker Path
 - separate OCR provider from app runtime
 - support Vercel-safe OCR via worker/API
 
-#### Phase C — upload job state / retry in Neon
-- track upload/OCR/draft/save states
-- enable recovery and retry for failed processing
+### Phase 34 — Final Save Flow + Dashboard Integration
+- save reviewed upload into existing receipt pipeline
+- redirect into receipt detail/dashboard flows
+- preserve media path, raw text, structured JSON, and items
+
+### Phase 35 — Upload Reliability, Retry, and Reprocessing
+- retry/reprocess failed OCR or parsing runs
+- processing state visibility
+- admin/operator visibility into failed uploads
 
 ## Working rule for future phases
+- Do the work locally first.
+- Run local validation before branching.
+- Then create the phase branch, push it, update docs, and ask Tony before merging to `main`.
+e phases
 - Do the work locally first.
 - Run local validation before branching.
 - Then create the phase branch, push it, update docs, and ask Tony before merging to `main`.

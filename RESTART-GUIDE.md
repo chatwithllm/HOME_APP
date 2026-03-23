@@ -205,24 +205,25 @@ Goal:
 - show warnings/confidence
 - review/correct before save
 
-### Phase 32 — Final Save Flow + Dashboard Integration
+### Phase 32 — Blob-backed Upload Storage for Vercel
+Goal:
+- replace local-disk-first upload storage with Vercel-compatible durable Blob storage while keeping local fallback for development
+
+### Phase 33 — OCR Abstraction + Remote Worker Path
+Goal:
+- separate OCR execution from the Vercel runtime so production OCR can run through a worker or API
+
+### Phase 34 — Final Save Flow + Dashboard Integration
 Goal:
 - make reviewed upload save flow fully polished and integrated
 - redirect into receipt detail/dashboard naturally
 - preserve media path, raw text, structured JSON, and item metadata
 
-### Phase 33 — Upload Reliability, Retry, and Reprocessing
+### Phase 35 — Upload Reliability, Retry, and Reprocessing
 Goal:
 - processing states
 - retry/reprocess failed OCR/parsing
 - operator visibility into failures
-
-### Vercel compatibility track
-In parallel, there is a deployment-driven architecture track:
-1. Blob-backed upload storage
-2. OCR abstraction layer
-3. remote OCR worker or external OCR provider for Vercel-safe processing
-4. persistent job/retry state in Neon
 
 ---
 
