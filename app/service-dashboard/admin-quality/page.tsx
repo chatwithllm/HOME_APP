@@ -117,7 +117,13 @@ export default async function AdminQualityPage() {
       description="Centralized view of parser gaps, suspicious totals, missing media, and receipts that deserve human side-eye."
     >
       <section className="space-y-6">
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-3">
+          <Link
+            href="/service-dashboard/automation"
+            className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+          >
+            Automation
+          </Link>
           <Link
             href="/service-dashboard/export"
             className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"

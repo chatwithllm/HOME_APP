@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createDb } from "@/db/client";
 import { shoppingLists, shoppingPlanItems } from "@/db/schema";
+import { recordShoppingSyncEvent } from "@/lib/shopping-automation";
 
 const recommendationPlanSchema = z.object({
   normalizedName: z.string().trim().min(1),
@@ -47,6 +48,19 @@ export async function POST(request: Request) {
     });
 
     if (existing) {
+      await recordShoppingSyncEvent({
+        shoppingListId: list.id,
+        target: "shopping-plan",
+        eventType: "recommendation_plan_merged",
+        payloadJson: {
+          normalizedName: payload.normalizedName,
+          itemName: payload.itemName,
+          preferredStore: payload.preferredStore || null,
+        },
+        resultStatus: "ignored",
+        resultMessage: "Recommendation already existed in shopping plan",
+      });
+
       return NextResponse.json({
         ok: true,
         merged: true,
@@ -66,6 +80,20 @@ export async function POST(request: Request) {
         status: "planned",
       })
       .returning({ id: shoppingPlanItems.id });
+
+    await recordShoppingSyncEvent({
+      shoppingListId: list.id,
+      target: "shopping-plan",
+      eventType: "recommendation_planned",
+      payloadJson: {
+        normalizedName: payload.normalizedName,
+        itemName: payload.itemName,
+        preferredStore: payload.preferredStore || null,
+        suggestedQty: payload.suggestedQty,
+      },
+      resultStatus: "success",
+      resultMessage: "Recommendation added to shopping plan",
+    });
 
     return NextResponse.json({
       ok: true,

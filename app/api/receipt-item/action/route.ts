@@ -5,6 +5,7 @@ import { createDb } from "@/db/client";
 import { receiptItems, receipts, shoppingLists, shoppingPlanItems } from "@/db/schema";
 import { normalizeItemName } from "@/lib/normalize-item";
 import { buildInferredQuantityMap } from "@/lib/receipt-item-quantity";
+import { recordShoppingSyncEvent } from "@/lib/shopping-automation";
 
 const receiptItemActionSchema = z.object({
   receiptItemId: z.number().int().positive(),
@@ -76,6 +77,20 @@ export async function POST(request: Request) {
         | undefined;
 
       if (duplicate) {
+        await recordShoppingSyncEvent({
+          shoppingListId: null,
+          target: "receipt-item-action",
+          eventType: `${payload.action}_blocked_duplicate_purchase`,
+          payloadJson: {
+            receiptItemId: payload.receiptItemId,
+            normalizedName,
+            lastStoreName: duplicate.store_name ?? null,
+            lastPurchasedAt: duplicate.purchased_at ?? null,
+          },
+          resultStatus: "ignored",
+          resultMessage: "Blocked because a recent duplicate purchase exists",
+        });
+
         return NextResponse.json(
           {
             ok: false,
@@ -144,6 +159,20 @@ export async function POST(request: Request) {
         .where(eq(shoppingPlanItems.id, existingItem.id))
         .returning({ id: shoppingPlanItems.id });
 
+      await recordShoppingSyncEvent({
+        shoppingListId: list.id,
+        target: "receipt-item-action",
+        eventType: `${payload.action}_merged`,
+        payloadJson: {
+          receiptItemId: payload.receiptItemId,
+          normalizedName,
+          preferredStore: receipt.storeName ?? null,
+          mergedQty,
+        },
+        resultStatus: "success",
+        resultMessage: "Receipt item action merged into existing shopping plan item",
+      });
+
       return NextResponse.json({
         ok: true,
         action: payload.action,
@@ -165,6 +194,20 @@ export async function POST(request: Request) {
         preferredStore: receipt.storeName,
       })
       .returning({ id: shoppingPlanItems.id });
+
+    await recordShoppingSyncEvent({
+      shoppingListId: list.id,
+      target: "receipt-item-action",
+      eventType: `${payload.action}_planned`,
+      payloadJson: {
+        receiptItemId: payload.receiptItemId,
+        normalizedName,
+        preferredStore: receipt.storeName ?? null,
+        expectedQty: incomingQty,
+      },
+      resultStatus: "success",
+      resultMessage: "Receipt item action created a shopping plan item",
+    });
 
     return NextResponse.json({
       ok: true,

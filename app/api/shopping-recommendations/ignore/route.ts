@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createDb } from "@/db/client";
 import { shoppingRecommendationIgnores } from "@/db/schema";
+import { recordShoppingSyncEvent } from "@/lib/shopping-automation";
 
 const ignoreSchema = z.object({
   normalizedName: z.string().trim().min(1),
@@ -44,6 +45,19 @@ export async function POST(request: Request) {
         reason: payload.reason || null,
       });
     }
+
+    await recordShoppingSyncEvent({
+      shoppingListId: null,
+      target: "recommendation-ignore",
+      eventType: "recommendation_ignored",
+      payloadJson: {
+        normalizedName: payload.normalizedName,
+        itemName: payload.itemName,
+        preferredStore: payload.preferredStore || null,
+      },
+      resultStatus: "success",
+      resultMessage: payload.reason || "Recommendation ignored from UI",
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

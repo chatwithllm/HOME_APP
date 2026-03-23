@@ -5,7 +5,8 @@ This note is the quick restart file for unfinished work after the completed Phas
 ## In Progress
 
 - No phase is currently mid-implementation.
-- Phase 27 — Store Intelligence + Merchant Profiles is completed locally and ready for branch/push/merge review.
+- Phase 28 — Automation / Integrations Follow-through is completed locally and ready for branch/push/merge review.
+- Phase 27 — Store Intelligence + Merchant Profiles is complete and merged to `main`.
 - Phase 25 — Export Granularity + Scheduled Backup UX is complete and merged to `main`.
 - Phase 26 — Receipt Ingestion / Parser Confidence v2 is complete and merged to `main`.
 - Anything drafted after Phase 24 was intentionally discarded so future work restarts from a clean baseline.
@@ -17,13 +18,12 @@ This note is the quick restart file for unfinished work after the completed Phas
 - Phase 24 — Recommendation Actions + Workflow Loop Closure: complete and merged to `main`
 - Phase 25 — Export Granularity + Scheduled Backup UX: complete and merged to `main`
 - Phase 26 — Receipt Ingestion / Parser Confidence v2: complete and merged to `main`
-- Phase 27 — Store Intelligence + Merchant Profiles: completed locally, awaiting branch push and merge decision
+- Phase 27 — Store Intelligence + Merchant Profiles: complete and merged to `main`
+- Phase 28 — Automation / Integrations Follow-through: completed locally, awaiting branch push and merge decision
 
 ## Pending Next
 
-### Phase 28 — Automation / Integrations Follow-through
-- broader workflow automation/integration paths
-- operational hooks for recommendations / quality alerts / backups
+- No additional follow-on phase is defined yet in this roadmap file.
 
 ## Working rule for future phases
 - Do the work locally first.
