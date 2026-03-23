@@ -16,15 +16,16 @@
 
 ### Local work in progress
 - **Phase 31 — Structured Receipt Parsing + Review Screen** *(wrapped on branch; awaiting merge)*
-- **Phase 32 — Blob-backed Upload Storage for Vercel** *(completed locally; not yet wrapped/branched/pushed)*
+- **Phase 32 — Blob-backed Upload Storage for Vercel** *(wrapped on branch; awaiting merge)*
+- **Phase 33 — OCR Abstraction + Remote Worker Path** *(completed locally; not yet wrapped/branched/pushed)*
 
 These have local implementation work and passing local validation, but are **not yet fully merged to `main`** in the current state captured by the restart guide.
 
 ### Immediate next priorities
-1. wrap Phase 32 cleanly
-2. continue Phase 33 OCR abstraction / remote worker work
-3. continue Phase 34 final save-flow/dashboard polish
-4. then harden retry/reprocessing / job-state behavior in later phases
+1. wrap Phase 33 cleanly
+2. continue Phase 34 final save-flow/dashboard polish
+3. continue Phase 35 retry/reprocessing hardening
+4. then reassess deployment-worker architecture if needed
 
 ### What to read next
 - `RESTART-GUIDE.md` → complete handoff
