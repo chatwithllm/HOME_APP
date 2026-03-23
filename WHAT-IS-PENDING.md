@@ -6,8 +6,8 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 ## In Progress
 
 - No phase is currently mid-implementation.
-- Phase 31 — Structured Receipt Parsing + Review Screen is completed locally and ready for branch/push/merge review.
-- Phase 32 — Blob-backed Upload Storage for Vercel remains the next local deployment-compatibility phase.
+- Phase 32 — Blob-backed Upload Storage for Vercel is completed locally and ready for branch/push/merge review.
+- Phase 31 — Structured Receipt Parsing + Review Screen is completed on branch and awaiting merge decision.
 - Phase 30 — OCR Extraction Pipeline is complete and merged to `main`.
 - Phase 29 — Receipt Upload UI Foundation is complete and merged to `main`.
 - Phase 28 — Automation / Integrations Follow-through is complete and merged to `main`.
@@ -27,14 +27,10 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 - Phase 28 — Automation / Integrations Follow-through: complete and merged to `main`
 - Phase 29 — Receipt Upload UI Foundation: complete and merged to `main`
 - Phase 30 — OCR Extraction Pipeline: complete and merged to `main`
-- Phase 31 — Structured Receipt Parsing + Review Screen: completed locally, awaiting branch push and merge decision
+- Phase 31 — Structured Receipt Parsing + Review Screen: wrapped on branch `phase-31-structured-receipt-parsing-review-screen`, awaiting merge decision
+- Phase 32 — Blob-backed Upload Storage for Vercel: completed locally, awaiting branch push and merge decision
 
 ## Pending Next
-
-### Phase 32 — Blob-backed Upload Storage for Vercel
-- prefer Vercel Blob over local disk when `BLOB_READ_WRITE_TOKEN` exists
-- keep local fallback for development
-- expose storage mode in upload UI/API
 
 ### Phase 33 — OCR Abstraction + Remote Worker Path
 - separate OCR provider from app runtime

@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
@@ -14,6 +15,18 @@ const ALLOWED_TYPES = new Map([
 
 function uploadsDir() {
   return path.join(process.cwd(), "uploads", "receipt-media");
+}
+
+function buildStoredName(originalName: string, contentType: string) {
+  const extension = ALLOWED_TYPES.get(contentType) || path.extname(originalName) || ".bin";
+  const safeBaseName = path
+    .basename(originalName, path.extname(originalName))
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "receipt";
+
+  return `${new Date().toISOString().slice(0, 10)}-${safeBaseName}-${randomUUID()}${extension}`;
 }
 
 export async function POST(request: Request) {
@@ -39,30 +52,44 @@ export async function POST(request: Request) {
       );
     }
 
-    const dir = uploadsDir();
-    await fs.mkdir(dir, { recursive: true });
-
-    const extension = ALLOWED_TYPES.get(file.type) || path.extname(file.name) || ".bin";
-    const safeBaseName = path
-      .basename(file.name, path.extname(file.name))
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "receipt";
-    const filename = `${new Date().toISOString().slice(0, 10)}-${safeBaseName}-${randomUUID()}${extension}`;
-    const filePath = path.join(dir, filename);
+    const storedName = buildStoredName(file.name, file.type);
     const bytes = Buffer.from(await file.arrayBuffer());
 
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const blob = await put(`receipt-media/${storedName}`, bytes, {
+        access: "private",
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+        contentType: file.type,
+        addRandomSuffix: false,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        media: {
+          originalName: file.name,
+          storedName,
+          filePath: blob.url,
+          contentType: file.type,
+          size: file.size,
+          storage: "blob",
+        },
+      });
+    }
+
+    const dir = uploadsDir();
+    await fs.mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, storedName);
     await fs.writeFile(filePath, bytes);
 
     return NextResponse.json({
       ok: true,
       media: {
         originalName: file.name,
-        storedName: filename,
+        storedName,
         filePath,
         contentType: file.type,
         size: file.size,
+        storage: "local",
       },
     });
   } catch (error) {
