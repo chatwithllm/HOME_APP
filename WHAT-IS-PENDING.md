@@ -5,7 +5,8 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 
 ## In Progress
 
-- **Primary local WIP:** Phase 33 — OCR Abstraction + Remote Worker Path (app-side provider abstraction is implemented locally; not yet wrapped/pushed/merged)
+- No phase is currently mid-implementation.
+- Phase 33 — OCR Abstraction + Remote Worker Path is completed locally and ready for branch/push/merge review.
 - **Next product phase after Phase 33:** Phase 34 — Final Save Flow + Dashboard Integration
 - **Then:** Phase 35 — Upload Reliability, Retry, and Reprocessing
 - Phase 31 — Structured Receipt Parsing + Review Screen is complete and merged to `main`.
@@ -49,4 +50,6 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 ## Working rule for future phases
 - Do the work locally first.
 - Run local validation before branching.
+- Then create the phase branch, push it, update docs, and ask Tony before merging to `main`.
+tion before branching.
 - Then create the phase branch, push it, update docs, and ask Tony before merging to `main`.
