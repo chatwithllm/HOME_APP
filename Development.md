@@ -2,6 +2,39 @@
 
 > For a long-gap restart, deployment architecture, tech stack, and merged-vs-local state summary, read `RESTART-GUIDE.md` first.
 
+## Current Truth (read this first)
+
+### Production direction
+- **Frontend/runtime:** Vercel
+- **Database:** Neon PostgreSQL
+- **Durable media target:** Vercel Blob
+- **Current dev OCR tools:** local `tesseract` + `pdftotext`
+
+### Merged to `main`
+- Phase 11–30 are complete and merged.
+- That includes upload UI and local OCR extraction.
+
+### Local work in progress
+- **Phase 31 — Structured Receipt Parsing + Review Screen**
+- **Phase A — Blob-backed upload storage for Vercel compatibility**
+
+These have local implementation work and passing local validation, but are **not yet formally wrapped up/branched/pushed/merged** in the current state captured by the restart guide.
+
+### Immediate next priorities
+1. finish Phase 31 cleanly
+2. finish Blob-backed upload storage adaptation cleanly
+3. continue Vercel-compatible OCR architecture work
+4. then harden retry/reprocessing / job-state behavior
+
+### What to read next
+- `RESTART-GUIDE.md` → complete handoff
+- `WHAT-IS-PENDING.md` → short next-step tracker
+- the rest of this file → historical phase log / archive
+
+---
+
+## Historical Phase Log
+
 ## Phase 1 — Project Bootstrap
 
 Status: Completed, reviewed, and approved by Tony for git push.
