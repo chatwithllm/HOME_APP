@@ -1184,5 +1184,103 @@ Implementation notes:
 - Phase 25 is complete and merged to `main`.
 - Phase 26 is complete and merged to `main`.
 - Phase 27 is complete and merged to `main`.
-- Phase 28 is complete locally and pending branch push / merge decision.
-- No further phase is currently defined after Phase 28.
+- Phase 28 is complete and merged to `main`.
+- Phase 29 is complete locally and pending branch push / merge decision.
+- A new upload/OCR roadmap begins after the completed Phase 23–28 follow-on roadmap.
+
+# New roadmap: Receipt Upload UI + OCR Intake Flow
+
+## Recommended execution order
+1. Phase 29 — Receipt Upload UI Foundation
+2. Phase 30 — OCR Extraction Pipeline
+3. Phase 31 — Structured Receipt Parsing + Review Screen
+4. Phase 32 — Final Save Flow + Dashboard Integration
+5. Phase 33 — Upload Reliability, Retry, and Reprocessing
+
+## Phase 29 — Receipt Upload UI Foundation
+
+Status: Completed locally and ready for branch push.
+
+Goal:
+Let the web app accept receipt images and PDFs cleanly so upload becomes a first-class user action rather than an API-only exercise.
+
+What was built:
+- Added `app/api/receipt-media/upload/route.ts` to accept supported receipt files and store them locally
+- Added `components/receipt-upload-form.tsx` with drag/drop, file-picker, upload state, error handling, and success result display
+- Added `app/service-dashboard/upload/page.tsx` as the new web upload entry point
+- Added upload validation for supported file types and a 15 MB size limit
+- Reused the app’s existing receipt-media storage story by saving uploaded files under a local app-managed `uploads/receipt-media` path
+- Updated admin-quality navigation to include a direct link into the upload surface
+- Updated `.gitignore` so runtime-uploaded receipt files do not get committed into git like cursed artifacts
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- `npm run db:test` ✅
+- Manual local review confirmed browser upload works and stores the file to the local upload directory ✅
+
+Implementation notes:
+- Phase 29 intentionally stops at media upload/storage and does not pretend to do OCR yet
+- The upload flow now provides the front door that later OCR/review phases can plug into cleanly
+- Upload storage reuses the existing receipt-media serving approach instead of inventing a second parallel media system
+- The next natural follow-on is Phase 30 — OCR Extraction Pipeline
+
+## Phase 30 — OCR Extraction Pipeline
+
+Goal:
+Turn uploaded media into raw OCR output and parser-ready artifacts.
+
+Planned work:
+- add OCR processing after upload
+- handle both image and PDF inputs
+- save raw OCR text and OCR metadata
+- surface OCR failures cleanly instead of silently dropping them
+
+Completion looks like:
+- uploaded receipts reliably produce raw OCR output
+- OCR results are visible/debuggable in the app
+
+## Phase 31 — Structured Receipt Parsing + Review Screen
+
+Goal:
+Transform OCR text into structured receipt data and give the user a review step before save.
+
+Planned work:
+- parse OCR text into store/date/total/items
+- attach warnings and confidence signals
+- create a review screen for extracted fields and line items
+- allow correction before the final save step
+
+Completion looks like:
+- uploaded receipts become editable structured drafts
+- users can review and fix before saving into the ledger
+
+## Phase 32 — Final Save Flow + Dashboard Integration
+
+Goal:
+Connect the reviewed upload flow into the existing receipt system cleanly.
+
+Planned work:
+- save the reviewed draft through the existing `/api/receipts` path
+- preserve media path, raw text, structured JSON, and item metadata
+- redirect into receipt detail/dashboard after save
+- show a clean success flow
+
+Completion looks like:
+- upload → OCR → review → save works end-to-end
+- saved receipts appear in normal dashboard/admin-quality flows
+
+## Phase 33 — Upload Reliability, Retry, and Reprocessing
+
+Goal:
+Make the upload/OCR flow operationally reliable instead of fragile.
+
+Planned work:
+- track upload/OCR/parse processing states
+- retry or reprocess failed uploads
+- expose failures and stuck states in an admin/operator surface
+- improve the error recovery story for bad uploads
+
+Completion looks like:
+- failed uploads do not vanish into sadness
+- operators can see and recover failed processing attempts
