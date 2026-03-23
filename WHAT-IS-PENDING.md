@@ -1,10 +1,12 @@
 # What Is Pending
 
 This note is the quick restart file for unfinished work after the completed Phase 11–24 roadmap work.
+For the full handoff, architecture, stack, merged-vs-local status, and restart instructions, read `RESTART-GUIDE.md` first.
 
 ## In Progress
 
-- Phase 30 — OCR Extraction Pipeline is the active next phase.
+- Phase 31 — Structured Receipt Parsing + Review Screen is the active next phase.
+- Phase 30 — OCR Extraction Pipeline is complete and merged to `main`.
 - Phase 29 — Receipt Upload UI Foundation is complete and merged to `main`.
 - Phase 28 — Automation / Integrations Follow-through is complete and merged to `main`.
 - Phase 27 — Store Intelligence + Merchant Profiles is complete and merged to `main`.
@@ -22,6 +24,7 @@ This note is the quick restart file for unfinished work after the completed Phas
 - Phase 27 — Store Intelligence + Merchant Profiles: complete and merged to `main`
 - Phase 28 — Automation / Integrations Follow-through: complete and merged to `main`
 - Phase 29 — Receipt Upload UI Foundation: complete and merged to `main`
+- Phase 30 — OCR Extraction Pipeline: complete and merged to `main`
 
 ## Pending Next
 
@@ -38,13 +41,6 @@ This note is the quick restart file for unfinished work after the completed Phas
 ### Phase 33 — Upload Reliability, Retry, and Reprocessing
 - retry/reprocess failed OCR or parsing runs
 - processing state visibility
-- admin/operator visibility into failed uploads
-
-## Working rule for future phases
-- Do the work locally first.
-- Run local validation before branching.
-- Then create the phase branch, push it, update docs, and ask Tony before merging to `main`.
- state visibility
 - admin/operator visibility into failed uploads
 
 ## Working rule for future phases

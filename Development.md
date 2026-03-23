@@ -1,5 +1,7 @@
 # Smart Receipts Development
 
+> For a long-gap restart, deployment architecture, tech stack, and merged-vs-local state summary, read `RESTART-GUIDE.md` first.
+
 ## Phase 1 — Project Bootstrap
 
 Status: Completed, reviewed, and approved by Tony for git push.
@@ -1186,7 +1188,7 @@ Implementation notes:
 - Phase 27 is complete and merged to `main`.
 - Phase 28 is complete and merged to `main`.
 - Phase 29 is complete and merged to `main`.
-- Phase 30 is complete locally and pending branch push / merge decision.
+- Phase 30 is complete and merged to `main`.
 - A new upload/OCR roadmap begins after the completed Phase 23–28 follow-on roadmap.
 
 # New roadmap: Receipt Upload UI + OCR Intake Flow
