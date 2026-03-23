@@ -32,11 +32,6 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 
 ## Pending Next
 
-### Phase 33 — OCR Abstraction + Remote Worker Path
-- separate OCR provider from app runtime
-- support Vercel-safe OCR via worker/API
-- keep local OCR as a development path where useful
-
 ### Phase 34 — Final Save Flow + Dashboard Integration
 - save reviewed upload into existing receipt pipeline
 - redirect into receipt detail/dashboard flows
@@ -44,6 +39,14 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 
 ### Phase 35 — Upload Reliability, Retry, and Reprocessing
 - retry/reprocess failed OCR or parsing runs
+- processing state visibility
+- admin/operator visibility into failed uploads
+
+## Working rule for future phases
+- Do the work locally first.
+- Run local validation before branching.
+- Then create the phase branch, push it, update docs, and ask Tony before merging to `main`.
+iled OCR or parsing runs
 - processing state visibility
 - admin/operator visibility into failed uploads
 

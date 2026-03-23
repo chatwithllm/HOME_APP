@@ -1,7 +1,9 @@
 import fs from "fs/promises";
+import os from "os";
 import path from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -23,6 +25,36 @@ function ensureInsideUploads(filePath: string) {
   return resolved;
 }
 
+function isRemoteUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+async function downloadRemoteFile(fileUrl: string, contentType?: string) {
+  const response = await fetch(fileUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download remote file: ${response.status} ${response.statusText}`);
+  }
+
+  const derivedType = contentType || response.headers.get("content-type") || "application/octet-stream";
+  const extension = derivedType.includes("pdf") ? ".pdf" : ".png";
+  const tempPath = path.join(os.tmpdir(), `receipt-ocr-${randomUUID()}${extension}`);
+  const buffer = Buffer.from(await response.arrayBuffer());
+  await fs.writeFile(tempPath, buffer);
+
+  return {
+    localPath: tempPath,
+    contentType: derivedType,
+    cleanup: async () => {
+      await fs.rm(tempPath, { force: true });
+    },
+  };
+}
+
 async function extractPdfText(filePath: string) {
   const { stdout } = await execFileAsync("pdftotext", [filePath, "-"]);
   return stdout.trim();
@@ -34,30 +66,43 @@ async function extractImageText(filePath: string) {
 }
 
 export async function POST(request: Request) {
+  let cleanup: (() => Promise<void>) | null = null;
+
   try {
     const body = (await request.json()) as unknown;
     const payload = ocrSchema.parse(body);
-    const filePath = ensureInsideUploads(payload.filePath);
-    await fs.access(filePath);
 
-    const extension = path.extname(filePath).toLowerCase();
-    const isPdf = payload.contentType === "application/pdf" || extension === ".pdf";
+    let localPath = payload.filePath;
+    let contentType = payload.contentType;
+
+    if (isRemoteUrl(payload.filePath)) {
+      const downloaded = await downloadRemoteFile(payload.filePath, payload.contentType);
+      localPath = downloaded.localPath;
+      contentType = downloaded.contentType;
+      cleanup = downloaded.cleanup;
+    } else {
+      localPath = ensureInsideUploads(payload.filePath);
+      await fs.access(localPath);
+    }
+
+    const extension = path.extname(localPath).toLowerCase();
+    const isPdf = contentType === "application/pdf" || extension === ".pdf";
 
     let rawText = "";
     let method = "";
 
     if (isPdf) {
-      rawText = await extractPdfText(filePath);
+      rawText = await extractPdfText(localPath);
       method = "pdftotext";
     } else {
-      rawText = await extractImageText(filePath);
+      rawText = await extractImageText(localPath);
       method = "tesseract";
     }
 
     return NextResponse.json({
       ok: true,
       ocr: {
-        filePath,
+        filePath: payload.filePath,
         method,
         rawText,
         characterCount: rawText.length,
@@ -76,5 +121,9 @@ export async function POST(request: Request) {
       { ok: false, error: error instanceof Error ? error.message : "OCR failed" },
       { status: 500 },
     );
+  } finally {
+    if (cleanup) {
+      await cleanup();
+    }
   }
 }

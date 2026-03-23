@@ -188,7 +188,14 @@ A **Phase 32 — Blob-backed Upload Storage for Vercel** change exists locally:
 - otherwise falls back to local storage
 - upload UI displays `storage: blob|local`
 - local validation already passing
-- not yet wrapped into its own pushed branch at the time of this update
+- wrapped on branch `phase-32-blob-backed-upload-storage-for-vercel`, awaiting merge decision
+
+### Also locally in progress
+A **Phase 33 — OCR Abstraction + Remote Worker Path** change exists locally:
+- OCR route accepts either local file paths or remote Blob URLs
+- remote Blob files are downloaded to a temp file before OCR
+- local OCR remains available for development
+- local validation already passing
 
 ### Important status note
 These local changes were **not formally wrapped up** at the time of this guide.
