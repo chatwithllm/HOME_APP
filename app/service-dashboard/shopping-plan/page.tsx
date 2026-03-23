@@ -1,10 +1,11 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { AppShell, SectionCard } from "@/components/shell";
 import { ShoppingPlanItemEditor } from "@/components/shopping-plan-item-editor";
 import { ShoppingRecommendationActions } from "@/components/shopping-recommendation-actions";
 import { createDb } from "@/db/client";
-import { receiptItems, receipts, shoppingLists, shoppingPlanItems, shoppingRecommendationIgnores } from "@/db/schema";
+import { receiptItems, receipts, shoppingLists, shoppingPlanItems, shoppingRecommendationIgnores, storeProfiles } from "@/db/schema";
 import { normalizeItemName } from "@/lib/normalize-item";
+import { parseStoreProfileNotes, scoreStorePreference } from "@/lib/store-profile";
 
 type ShoppingPlanView = {
   id: number;
@@ -29,9 +30,13 @@ type Recommendation = {
   itemName: string;
   purchaseCount: number;
   preferredStore: string;
+  storeType: string | null;
+  storeReliability: string | null;
+  storeTips: string[];
   lastPurchasedAt: Date;
   averageLineTotal: number | null;
   suggestedQty: number;
+  defaultPriority: string | null;
 };
 
 function money(value: number | null | undefined) {
@@ -110,7 +115,7 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
   const { db, pool } = createDb();
 
   try {
-    const [rows, ignores] = await Promise.all([
+    const [rows, ignores, profiles] = await Promise.all([
       db
         .select({
           receiptItemId: receiptItems.id,
@@ -126,16 +131,19 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
       db.query.shoppingRecommendationIgnores.findMany({
         where: eq(shoppingRecommendationIgnores.active, true),
       }),
+      db.query.storeProfiles.findMany(),
     ]);
 
     const ignored = new Set(ignores.map((row) => row.normalizedName));
+    const profileByStore = new Map(profiles.map((profile) => [profile.storeName, profile]));
     const grouped = new Map<
       string,
       {
         itemName: string;
         purchaseCount: number;
-        preferredStore: string;
+        storeCounts: Map<string, number>;
         lastPurchasedAt: Date;
+        lastStoreName: string;
         lineTotalSum: number;
         lineTotalCount: number;
         suggestedQty: number;
@@ -158,8 +166,9 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
         grouped.set(normalizedName, {
           itemName: row.itemName,
           purchaseCount: 1,
-          preferredStore: storeName,
+          storeCounts: new Map([[storeName, 1]]),
           lastPurchasedAt: purchasedAt,
+          lastStoreName: storeName,
           lineTotalSum: lineTotal ?? 0,
           lineTotalCount: lineTotal != null ? 1 : 0,
           suggestedQty,
@@ -168,10 +177,11 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
       }
 
       existing.purchaseCount += 1;
+      existing.storeCounts.set(storeName, (existing.storeCounts.get(storeName) ?? 0) + 1);
       if (purchasedAt.getTime() > existing.lastPurchasedAt.getTime()) {
         existing.lastPurchasedAt = purchasedAt;
         existing.itemName = row.itemName;
-        existing.preferredStore = storeName;
+        existing.lastStoreName = storeName;
         existing.suggestedQty = suggestedQty;
       }
       if (lineTotal != null) {
@@ -181,15 +191,40 @@ async function getRecommendations(existingPlannedNames: Set<string>) {
     }
 
     return [...grouped.entries()]
-      .map(([normalizedName, group]) => ({
-        normalizedName,
-        itemName: group.itemName,
-        purchaseCount: group.purchaseCount,
-        preferredStore: group.preferredStore,
-        lastPurchasedAt: group.lastPurchasedAt,
-        averageLineTotal: group.lineTotalCount ? group.lineTotalSum / group.lineTotalCount : null,
-        suggestedQty: group.suggestedQty,
-      }))
+      .map(([normalizedName, group]) => {
+        const rankedStores = [...group.storeCounts.entries()]
+          .map(([storeName, purchaseCount]) => {
+            const profile = profileByStore.get(storeName);
+            return {
+              ...scoreStorePreference({
+                normalizedName,
+                storeName,
+                purchaseCount,
+                profileNotes: profile?.notes,
+              }),
+              purchaseCount,
+              storeType: profile?.storeType ?? null,
+            };
+          })
+          .sort((a, b) => b.score - a.score || b.purchaseCount - a.purchaseCount);
+
+        const topStore = rankedStores[0];
+        const metadata = topStore?.metadata ?? parseStoreProfileNotes(null);
+
+        return {
+          normalizedName,
+          itemName: group.itemName,
+          purchaseCount: group.purchaseCount,
+          preferredStore: topStore?.storeName ?? group.lastStoreName,
+          storeType: topStore?.storeType ?? null,
+          storeReliability: metadata.reliability,
+          storeTips: metadata.shoppingTips,
+          lastPurchasedAt: group.lastPurchasedAt,
+          averageLineTotal: group.lineTotalCount ? group.lineTotalSum / group.lineTotalCount : null,
+          suggestedQty: group.suggestedQty,
+          defaultPriority: metadata.defaultPriority,
+        };
+      })
       .filter((row) => row.purchaseCount >= 2)
       .sort((a, b) => {
         if (b.purchaseCount !== a.purchaseCount) {
@@ -254,10 +289,18 @@ export default async function ShoppingPlanPage() {
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--muted)]">
                         <span><span className="font-semibold">Likely store:</span> {item.preferredStore}</span>
+                        <span><span className="font-semibold">Store type:</span> {item.storeType || "Unknown"}</span>
+                        <span><span className="font-semibold">Reliability:</span> {item.storeReliability || "Unknown"}</span>
                         <span><span className="font-semibold">Suggested qty:</span> {item.suggestedQty}</span>
                         <span><span className="font-semibold">Last bought:</span> {formatDate(item.lastPurchasedAt)}</span>
                         <span><span className="font-semibold">Avg line total:</span> {money(item.averageLineTotal)}</span>
                       </div>
+                      {item.defaultPriority ? (
+                        <p className="mt-2 text-sm text-[var(--muted)]"><span className="font-semibold">Store default priority:</span> {item.defaultPriority}</p>
+                      ) : null}
+                      {item.storeTips.length ? (
+                        <p className="mt-2 text-sm text-[var(--muted)]"><span className="font-semibold">Store tips:</span> {item.storeTips.join(" · ")}</p>
+                      ) : null}
                     </div>
 
                     <div className="w-full xl:w-[220px] xl:max-w-[220px]">

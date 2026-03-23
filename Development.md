@@ -1124,10 +1124,37 @@ Implementation notes:
 - Local backup guidance is now explicit enough to be repeatable instead of living as vague tribal knowledge
 - The next most natural follow-on is Phase 27 — Store Intelligence + Merchant Profiles
 
+## Phase 27 — Store Intelligence + Merchant Profiles
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Make merchant profiles materially useful across receipt review and shopping recommendations instead of leaving store intelligence trapped at the level of a single coarse store type.
+
+What was built:
+- Added `lib/store-profile.ts` to parse and score richer merchant profile metadata stored through `store_profiles.notes`
+- Upgraded `app/api/store-profile/route.ts` to accept richer merchant profile inputs including preferred categories, shopping tips, pricing notes, reliability, default priority, and item-specific prefer/avoid hints
+- Expanded `components/store-type-selector.tsx` into a fuller merchant profile editor instead of a store-type-only button strip
+- Updated `app/service-dashboard/receipts/[id]/page.tsx` to show a richer store profile summary including reliability, default priority, preferred categories, shopping tips, and pricing notes
+- Updated `app/service-dashboard/shopping-plan/page.tsx` so recommendation store ranking uses merchant profile intelligence rather than only raw purchase counts
+- Surfaced store type, reliability, default priority, and store tips directly in recommendation cards for more store-aware planning behavior
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- `npm run db:test` ✅
+
+Implementation notes:
+- Phase 27 intentionally avoided a schema migration by encoding richer merchant metadata inside existing profile notes first
+- Recommendation ranking now balances purchase frequency with merchant-level prefer/avoid and reliability hints
+- Merchant profiles are now visible and editable in a form that can actually influence future shopping behavior instead of serving as decorative metadata
+- The next natural follow-on is Phase 28 — Automation / Integrations Follow-through
+
 ## Notes for future restart
 - The original Phase 11–22 roadmap is complete and merged to `main`.
 - Phase 23 is complete and merged to `main`.
 - Phase 24 is complete and merged to `main`.
-- Phase 25 is complete locally and pending branch push / merge decision.
+- Phase 25 is complete and merged to `main`.
 - Phase 26 is complete and merged to `main`.
-- The most obvious immediate next step after Phase 25 is **Phase 27 — Store Intelligence + Merchant Profiles**.
+- Phase 27 is complete locally and pending branch push / merge decision.
+- The most obvious immediate next step is **Phase 28 — Automation / Integrations Follow-through**.

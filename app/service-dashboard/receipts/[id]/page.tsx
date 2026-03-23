@@ -13,6 +13,7 @@ import { receiptItems, receipts, storeProfiles } from "@/db/schema";
 import { buildInferredQuantityDetailsMap, summarizeInferredQuantities } from "@/lib/receipt-item-quantity";
 import { getReceiptParseSummary, getItemParseSummary, isLowConfidence } from "@/lib/receipt-parse-quality";
 import { getReceiptMediaSrc } from "@/lib/receipt-media";
+import { parseStoreProfileNotes } from "@/lib/store-profile";
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) {
@@ -115,6 +116,7 @@ export default async function ReceiptDetailPage({
   const totalsLookConsistent = Math.abs(subtotalAmount + taxAmount - totalAmount) < 0.02;
   const receiptMediaSrc = getReceiptMediaSrc(receipt.id, receipt.imagePath);
   const receiptMediaKind = getReceiptMediaKind(receipt.imagePath);
+  const storeMetadata = parseStoreProfileNotes(storeProfile?.notes);
 
   return (
     <AppShell
@@ -364,8 +366,18 @@ export default async function ReceiptDetailPage({
           </div>
 
           <div className="space-y-6 lg:col-span-5">
-            <SectionCard title="Store type" description="Classify the merchant for later analytics and filtering.">
-              <StoreTypeSelector storeName={receipt.storeName} initialStoreType={storeProfile?.storeType} />
+            <SectionCard title="Store profile" description="Merchant classification and store-specific planning hints.">
+              <div className="space-y-3 rounded-[16px] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]">
+                <p><span className="font-semibold text-[var(--text)]">Store type:</span> {storeProfile?.storeType || "Unknown"}</p>
+                <p><span className="font-semibold text-[var(--text)]">Reliability:</span> {storeMetadata.reliability || "Unknown"}</p>
+                <p><span className="font-semibold text-[var(--text)]">Default priority:</span> {storeMetadata.defaultPriority || "None"}</p>
+                {storeMetadata.preferredForCategories.length ? <p><span className="font-semibold text-[var(--text)]">Preferred categories:</span> {storeMetadata.preferredForCategories.join(", ")}</p> : null}
+                {storeMetadata.shoppingTips.length ? <p><span className="font-semibold text-[var(--text)]">Shopping tips:</span> {storeMetadata.shoppingTips.join(" · ")}</p> : null}
+                {storeMetadata.pricingNotes ? <p><span className="font-semibold text-[var(--text)]">Pricing notes:</span> {storeMetadata.pricingNotes}</p> : null}
+              </div>
+              <div className="mt-4">
+                <StoreTypeSelector storeName={receipt.storeName} initialStoreType={storeProfile?.storeType} initialNotes={storeProfile?.notes} />
+              </div>
             </SectionCard>
 
             <SectionCard title="Receipt image" description="Stored receipt image path or preview.">
