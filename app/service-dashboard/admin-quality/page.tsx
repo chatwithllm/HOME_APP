@@ -119,6 +119,12 @@ export default async function AdminQualityPage() {
       <section className="space-y-6">
         <div className="flex flex-wrap justify-end gap-3">
           <Link
+            href="/service-dashboard/upload"
+            className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+          >
+            Upload Receipt
+          </Link>
+          <Link
             href="/service-dashboard/automation"
             className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
           >
