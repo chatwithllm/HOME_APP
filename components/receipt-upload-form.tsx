@@ -8,6 +8,7 @@ type UploadResult = {
   filePath: string;
   contentType: string;
   size: number;
+  storage?: "local" | "blob";
 };
 
 type OcrResult = {
@@ -237,7 +238,7 @@ export function ReceiptUploadForm() {
       {error ? <div className="rounded-[16px] border border-[rgba(190,24,24,0.15)] bg-[rgba(254,242,242,0.9)] p-4 text-sm text-[rgb(127,29,29)]">{error}</div> : null}
       {savedReceiptId ? <div className="rounded-[16px] border border-[rgba(22,101,52,0.15)] bg-[rgba(240,253,244,0.9)] p-4 text-sm text-[rgb(21,128,61)]">Receipt saved successfully. Receipt ID: {savedReceiptId}</div> : null}
 
-      {result ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">Upload completed</p><p className="mt-2">Original name: {result.originalName}</p><p>Stored name: {result.storedName}</p><p>Stored path: {result.filePath}</p><p>Content type: {result.contentType}</p><p>Size: {Math.round(result.size / 1024)} KB</p></div> : null}
+      {result ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">Upload completed</p><p className="mt-2">Original name: {result.originalName}</p><p>Stored name: {result.storedName}</p><p>Stored path: {result.filePath}</p><p>Storage: {result.storage || "local"}</p><p>Content type: {result.contentType}</p><p>Size: {Math.round(result.size / 1024)} KB</p></div> : null}
 
       {ocrResult ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">OCR completed</p><p className="mt-2">Method: {ocrResult.method}</p><p>Characters: {ocrResult.characterCount}</p><p>Lines: {ocrResult.lineCount}</p><textarea readOnly value={ocrResult.rawText} className="mt-3 min-h-[220px] w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 font-mono text-xs leading-6 text-[var(--text)]" /></div> : null}
 

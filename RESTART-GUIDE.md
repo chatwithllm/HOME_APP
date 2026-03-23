@@ -180,6 +180,7 @@ Local implementation exists for:
 - correction before save
 - saving reviewed receipts into `/api/receipts`
 - local validation already passing
+- wrapped on branch `phase-31-structured-receipt-parsing-review-screen`, awaiting merge decision
 
 ### Also locally in progress
 A **Phase 32 — Blob-backed Upload Storage for Vercel** change exists locally:
@@ -187,6 +188,7 @@ A **Phase 32 — Blob-backed Upload Storage for Vercel** change exists locally:
 - otherwise falls back to local storage
 - upload UI displays `storage: blob|local`
 - local validation already passing
+- not yet wrapped into its own pushed branch at the time of this update
 
 ### Important status note
 These local changes were **not formally wrapped up** at the time of this guide.
