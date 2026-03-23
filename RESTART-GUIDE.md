@@ -61,15 +61,16 @@ The long-term goal is an end-to-end flow:
 - **Local OCR binaries** currently power OCR in development:
   - `tesseract`
   - `pdftotext` (from `poppler`)
-- **Remote OCR worker** is now the intended production OCR direction for Vercel, but is not built yet
+- **Remote OCR worker** is now the intended production OCR direction for Vercel
 
 ### Important deployment reality
-The app is now far enough along that the product flow exists, but the production-safe Vercel OCR architecture is still unfinished.
+The product flow now exists in the app, but production-safe OCR on Vercel still depends on a worker being available.
 That means:
-- upload on Vercel can be Blob-backed already
+- upload on Vercel can already be Blob-backed
 - private Blob access for OCR is handled in code
+- provider abstraction is merged and ready
 - Vercel still cannot run local OCR binaries like `tesseract`
-- production OCR must move to an authenticated worker/API path
+- production OCR must use an authenticated worker/API path
 
 ---
 
@@ -162,6 +163,7 @@ These were installed on the current development machine via Homebrew.
 - Phase 30 — OCR Extraction Pipeline
 - Phase 31 — Structured Receipt Parsing + Review Screen
 - Phase 32 — Blob-backed Upload Storage for Vercel
+- Phase 33 — OCR Abstraction + Remote Worker Path
 
 ### What that means in plain English
 Merged `main` already has:
@@ -170,6 +172,8 @@ Merged `main` already has:
 - OCR endpoint
 - Blob-backed upload support when configured
 - structured draft builder and review/save flow
+- private Blob-aware OCR retrieval for local mode
+- OCR provider abstraction with env-based local vs worker selection
 - receipt dashboards and query pages
 - receipt detail and edit/correction tooling
 - parser confidence storage
@@ -180,42 +184,59 @@ Merged `main` already has:
 
 ## 6. What is currently in progress locally and not wrapped up yet
 
-### Phase 33 — OCR Abstraction + Remote Worker Path
-Local implementation exists for:
-- OCR provider abstraction in `lib/ocr-provider.ts`
-- env-based provider selection (`local` vs `worker`)
-- local OCR path retained for development
-- private Blob-aware OCR retrieval retained for local mode
-- app-side worker call path added for production mode
-- `.env.example` updated with OCR worker configuration
-- local validation already passing
+At the stop point captured by this guide, there is **no required local WIP that must be preserved to understand the state of the project**.
 
-### Important status note
-Phase 33 is complete locally and ready to be wrapped/branched/pushed, but is not yet merged to `main` at the stop point captured by this guide.
+The important next step is not hidden code — it is the missing production component:
+- the OCR worker service itself
+
+If `git status` shows local modifications later, treat them as new work after this checkpoint rather than part of the baseline.
 
 ---
 
 ## 7. Current pending roadmap
 
-### Phase 33 — OCR Abstraction + Remote Worker Path
+### Immediate next build (required for production OCR on Vercel)
+#### OCR Worker Service
 Goal:
-- move production OCR execution off the Vercel runtime
-- keep local OCR available for development
-- use env-configured provider selection (`local` vs `worker`)
-- call an authenticated OCR worker from Vercel in production
-- preserve Blob-backed file handling for private receipt uploads
+- provide an authenticated endpoint that can OCR uploaded receipt files outside the Vercel runtime
+
+Expected request:
+```json
+{
+  "fileUrl": "https://...",
+  "contentType": "application/pdf"
+}
+```
+
+Expected response:
+```json
+{
+  "ok": true,
+  "ocr": {
+    "filePath": "https://...",
+    "method": "pdftotext",
+    "rawText": "...",
+    "characterCount": 1234,
+    "lineCount": 88
+  }
+}
+```
+
+Production target:
+- Vercel app uses `OCR_PROVIDER=worker`
+- OCR worker runs on VM/VPS/local always-on machine
 
 ### Phase 34 — Final Save Flow + Dashboard Integration
 Goal:
-- make reviewed upload save flow fully polished and integrated
-- redirect into receipt detail/dashboard naturally
-- preserve media path, raw text, structured JSON, and item metadata
+- polish reviewed upload save flow end-to-end
+- ensure dashboard/detail redirects and post-save UX are clean
+- preserve media path, raw text, structured JSON, confidence, and item metadata consistently
 
 ### Phase 35 — Upload Reliability, Retry, and Reprocessing
 Goal:
-- processing states
-- retry/reprocess failed OCR/parsing
-- operator visibility into failures
+- add upload/OCR/draft/save processing states
+- enable retries and reprocessing for failed OCR/parsing
+- expose failure visibility in an operator/admin surface
 
 ---
 
@@ -231,31 +252,31 @@ Goal:
 7. user reviews/corrects draft
 8. reviewed payload is saved via `/api/receipts`
 
-### Current production blocker on Vercel
-- private Blob access is handled
-- but local OCR binaries like `tesseract` are not available on Vercel
-- therefore production OCR must move to `OCR_PROVIDER=worker`
+### What still blocks production OCR on Vercel
+- the app side is ready to use a worker
+- the worker itself does not exist yet
+- if Vercel runs with `OCR_PROVIDER=local`, OCR will fail because `tesseract` is not installed there
 
-### What is merged vs local
-- upload is merged
-- OCR route is merged
-- draft review/save is merged
-- Blob-backed upload storage is merged
-- OCR provider abstraction is local WIP at this stop point
+### Current correct production direction
+- set `OCR_PROVIDER=worker`
+- set `OCR_WORKER_URL`
+- set `OCR_WORKER_TOKEN`
+- deploy a reachable OCR worker that handles PDFs and images
 
 ---
 
 ## 9. Vercel-specific constraints
 
-### What is fine on Vercel
+### What is fine on Vercel now
 - UI pages
 - app routes
 - Neon-backed structured data
 - upload to Blob
 - draft and save flow logic
+- app-side OCR provider selection
 
-### What is not production-safe yet
-- local OCR binary execution on Vercel (`tesseract`, `pdftotext`)
+### What is not complete yet
+- the remote OCR worker service itself
 
 ### Target production architecture for Vercel
 Recommended split:
@@ -269,7 +290,7 @@ To minimize recurring cost:
 - keep Vercel for UI
 - keep Neon for DB
 - use Blob for file storage
-- run an authenticated OCR worker on a VM/VPS/local always-on machine
+- run an authenticated OCR worker on a VM/VPS/local always-on machine using `tesseract` and `pdftotext`
 
 ---
 
@@ -288,7 +309,7 @@ To minimize recurring cost:
 - `components/receipt-upload-form.tsx`
 - `lib/receipt-draft.ts`
 - `lib/receipt-media.ts`
-- `lib/ocr-provider.ts` *(local WIP at stop point)*
+- `lib/ocr-provider.ts`
 
 ### Receipt intake/save
 - `app/api/receipts/route.ts`
@@ -333,11 +354,7 @@ cd /Users/assistant/.openclaw/workspace/HomeApp
 git status
 ```
 
-At this stop point, expect local WIP for:
-- `lib/ocr-provider.ts`
-- `app/api/receipt-media/ocr/route.ts`
-- `.env.example`
-- doc files that mention Phase 33
+At the checkpoint captured by this guide, the baseline assumption is that `main` already contains the app-side Phase 33 work.
 
 ### Step 3: confirm environment
 Run:
@@ -379,12 +396,13 @@ Open:
 - `http://localhost:3001/service-dashboard/automation`
 - `http://localhost:3001/service-dashboard/shopping-plan`
 
-### Step 6: decide which track you are continuing
-At the stop point captured by this guide, the safest next move is:
-1. wrap and merge Phase 33 cleanly
-2. build or configure the OCR worker endpoint
-3. switch Vercel production to `OCR_PROVIDER=worker`
-4. then continue Phase 34/35 hardening
+### Step 6: next build order
+At this stop point, the safest next move is:
+1. build/configure the OCR worker service
+2. set Vercel env to `OCR_PROVIDER=worker`
+3. test full Vercel upload → worker OCR → draft → save flow
+4. continue Phase 34 polish
+5. continue Phase 35 retry/reprocessing hardening
 
 ---
 
@@ -413,29 +431,26 @@ This workflow is not optional drift; it is the agreed process.
 
 ## 13. Known gaps / current reality check
 
-### Product flow is largely real now
+### Product flow is real now
 The app already supports:
 - upload
+- Blob-backed media storage
 - OCR route
 - structured draft review
 - save into receipts
 
 ### Main production gap
-The remaining major production gap is **Vercel-safe OCR execution**.
-That is why Phase 33 exists.
+The remaining major production gap is **the worker service itself**.
+The app-side support for that worker is already merged.
 
-### Current Vercel problem that was observed
+### Vercel issue sequence already learned
 Progression observed in production:
 1. upload to Blob worked
 2. OCR initially failed because Blob URL was treated like a local path
-3. private Blob read support was then added
+3. private Blob read support was added
 4. next failure revealed that Vercel cannot run `tesseract`
-5. therefore OCR must move to a worker/API path in production
-
-### Biggest immediate next engineering need
-- finish and ship OCR provider abstraction
-- build worker endpoint
-- configure Vercel to use worker mode
+5. Phase 33 added provider abstraction and worker path support
+6. next real requirement is to build and configure the worker
 
 ---
 
@@ -444,14 +459,14 @@ Progression observed in production:
 If coming back much later with no fresh context, the safest next move is:
 
 1. read this file completely
-2. inspect current local WIP for Phase 33
-3. wrap/commit/branch/push/merge Phase 33 cleanly
-4. build the OCR worker implementation next
-5. test the full Vercel upload → worker OCR → draft → save flow
+2. confirm `main` already contains Phase 33
+3. build the OCR worker implementation next
+4. configure Vercel env for worker mode
+5. test the full deployed upload → OCR → draft → save path
+6. then continue with Phase 34 and 35
 
 ---
 
 ## 15. One-line summary
 
-**HomeApp is now a real Vercel + Neon receipt/shopping app with upload, Blob-backed storage, OCR route, draft review, and save flow already in place; the main unfinished production task is moving OCR execution off Vercel and onto a worker via the new Phase 33 provider abstraction.**
-ished production task is moving OCR execution off Vercel and onto a worker via the new Phase 33 provider abstraction.**
+**HomeApp is now a real Vercel + Neon receipt/shopping app with upload, Blob-backed storage, OCR route, draft review, save flow, and app-side OCR worker abstraction already merged; the main unfinished production task is building and wiring the OCR worker service itself.**

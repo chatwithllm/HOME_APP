@@ -11,17 +11,15 @@
 - **Current dev OCR tools:** local `tesseract` + `pdftotext`
 
 ### Merged to `main`
-- Phase 11–32 are complete and merged.
-- That includes upload UI, Blob-backed storage, OCR extraction, structured draft review, and save flow.
+- Phase 11–33 are complete and merged.
+- That includes upload UI, Blob-backed storage, OCR extraction, structured draft review, save flow, and app-side OCR provider abstraction.
 
 ### Local work in progress
-- **Phase 33 — OCR Abstraction + Remote Worker Path** *(completed locally; ready to wrap/branch/push)*
-
-This local work has passing validation, but is **not yet merged to `main`** in the current state captured by the restart guide.
+- No required local WIP is part of the current baseline.
 
 ### Immediate next priorities
-1. wrap and merge Phase 33 cleanly
-2. build/configure the OCR worker endpoint
+1. build/configure the OCR worker endpoint
+2. set Vercel to `OCR_PROVIDER=worker`
 3. continue Phase 34 final save-flow/dashboard polish
 4. continue Phase 35 retry/reprocessing hardening
 

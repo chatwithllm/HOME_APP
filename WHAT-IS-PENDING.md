@@ -6,11 +6,12 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 ## In Progress
 
 - No phase is currently mid-implementation.
-- Phase 33 — OCR Abstraction + Remote Worker Path is completed locally and ready for branch/push/merge review.
-- **Next product phase after Phase 33:** Phase 34 — Final Save Flow + Dashboard Integration
+- **Immediate next build:** OCR worker endpoint/service for production use with `OCR_PROVIDER=worker`
+- **Next product phase:** Phase 34 — Final Save Flow + Dashboard Integration
 - **Then:** Phase 35 — Upload Reliability, Retry, and Reprocessing
-- Phase 31 — Structured Receipt Parsing + Review Screen is complete and merged to `main`.
+- Phase 33 — OCR Abstraction + Remote Worker Path is complete and merged to `main`.
 - Phase 32 — Blob-backed Upload Storage for Vercel is complete and merged to `main`.
+- Phase 31 — Structured Receipt Parsing + Review Screen is complete and merged to `main`.
 - Phase 30 — OCR Extraction Pipeline is complete and merged to `main`.
 - A new upload/OCR roadmap is active after the completed Phase 23–28 follow-on roadmap.
 - Per workflow: update docs before starting, update docs again after completion, test locally before branching, then push and ask before merge.
@@ -27,15 +28,9 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 - Phase 30 — OCR Extraction Pipeline: complete and merged to `main`
 - Phase 31 — Structured Receipt Parsing + Review Screen: complete and merged to `main`
 - Phase 32 — Blob-backed Upload Storage for Vercel: complete and merged to `main`
+- Phase 33 — OCR Abstraction + Remote Worker Path: complete and merged to `main`
 
 ## Pending Next
-
-### Phase 33 — OCR Abstraction + Remote Worker Path
-- move production OCR execution off the Vercel runtime
-- keep local OCR available for development
-- use env-configured provider selection (`local` vs `worker`)
-- call an authenticated OCR worker from Vercel in production
-- preserve Blob-backed file handling for private receipt uploads
 
 ### Phase 34 — Final Save Flow + Dashboard Integration
 - polish reviewed upload save flow end-to-end
@@ -47,9 +42,18 @@ For the full handoff, architecture, stack, merged-vs-local status, and restart i
 - enable retries and reprocessing for failed OCR/parsing
 - expose failure visibility in an operator/admin surface
 
+## Production deployment note
+Current `main` is ready for:
+- Vercel + Neon
+- Blob-backed receipt upload
+- app-side OCR provider abstraction
+
+Current `main` is **not yet enough** for production OCR on Vercel until an OCR worker is built and configured via:
+- `OCR_PROVIDER=worker`
+- `OCR_WORKER_URL=...`
+- `OCR_WORKER_TOKEN=...`
+
 ## Working rule for future phases
 - Do the work locally first.
 - Run local validation before branching.
-- Then create the phase branch, push it, update docs, and ask Tony before merging to `main`.
-tion before branching.
 - Then create the phase branch, push it, update docs, and ask Tony before merging to `main`.
