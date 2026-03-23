@@ -15,12 +15,12 @@
 - That includes upload UI, Blob-backed storage, OCR extraction, structured draft review, and save flow.
 
 ### Local work in progress
-- **Phase 33 — OCR Abstraction + Remote Worker Path** *(implemented locally; not yet wrapped/branched/pushed)*
+- **Phase 33 — OCR Abstraction + Remote Worker Path** *(completed locally; ready to wrap/branch/push)*
 
 This local work has passing validation, but is **not yet merged to `main`** in the current state captured by the restart guide.
 
 ### Immediate next priorities
-1. wrap Phase 33 cleanly
+1. wrap and merge Phase 33 cleanly
 2. build/configure the OCR worker endpoint
 3. continue Phase 34 final save-flow/dashboard polish
 4. continue Phase 35 retry/reprocessing hardening

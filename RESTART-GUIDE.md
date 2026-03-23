@@ -191,8 +191,7 @@ Local implementation exists for:
 - local validation already passing
 
 ### Important status note
-Phase 33 is not wrapped/branched/pushed at the stop point captured by this guide.
-Treat it as local WIP until it is formally wrapped and merged.
+Phase 33 is complete locally and ready to be wrapped/branched/pushed, but is not yet merged to `main` at the stop point captured by this guide.
 
 ---
 
@@ -455,3 +454,4 @@ If coming back much later with no fresh context, the safest next move is:
 ## 15. One-line summary
 
 **HomeApp is now a real Vercel + Neon receipt/shopping app with upload, Blob-backed storage, OCR route, draft review, and save flow already in place; the main unfinished production task is moving OCR execution off Vercel and onto a worker via the new Phase 33 provider abstraction.**
+ished production task is moving OCR execution off Vercel and onto a worker via the new Phase 33 provider abstraction.**
