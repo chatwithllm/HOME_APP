@@ -1185,7 +1185,8 @@ Implementation notes:
 - Phase 26 is complete and merged to `main`.
 - Phase 27 is complete and merged to `main`.
 - Phase 28 is complete and merged to `main`.
-- Phase 29 is complete locally and pending branch push / merge decision.
+- Phase 29 is complete and merged to `main`.
+- Phase 30 is complete locally and pending branch push / merge decision.
 - A new upload/OCR roadmap begins after the completed Phase 23–28 follow-on roadmap.
 
 # New roadmap: Receipt Upload UI + OCR Intake Flow
@@ -1227,18 +1228,30 @@ Implementation notes:
 
 ## Phase 30 — OCR Extraction Pipeline
 
+Status: Completed locally and ready for branch push.
+
 Goal:
 Turn uploaded media into raw OCR output and parser-ready artifacts.
 
-Planned work:
-- add OCR processing after upload
-- handle both image and PDF inputs
-- save raw OCR text and OCR metadata
-- surface OCR failures cleanly instead of silently dropping them
+What was built:
+- Added `app/api/receipt-media/ocr/route.ts` to run local OCR against uploaded receipt media
+- Added server-side OCR method selection using `pdftotext` for PDFs and `tesseract` for image uploads
+- Added path validation so OCR only runs against files inside the managed upload directory
+- Updated `components/receipt-upload-form.tsx` to add an explicit **Run OCR** step after upload
+- Updated the upload page to display OCR metadata and raw OCR text directly in the UI for debugging and later review-flow work
+- Verified and installed the local OCR toolchain (`tesseract` and `poppler/pdftotext`) on the host machine
 
-Completion looks like:
-- uploaded receipts reliably produce raw OCR output
-- OCR results are visible/debuggable in the app
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- `npm run db:test` ✅
+- Manual local review confirmed upload → OCR flow works and returns raw text in the UI ✅
+
+Implementation notes:
+- Phase 30 deliberately uses a local-first OCR stack to keep recurring OCR cost at zero
+- PDFs are handled with `pdftotext` first, which is cheaper and often cleaner than forcing OCR on text-based PDFs
+- The UI now separates upload from OCR explicitly, which makes failures easier to debug and keeps the workflow sane
+- The next natural follow-on is Phase 31 — Structured Receipt Parsing + Review Screen
 
 ## Phase 31 — Structured Receipt Parsing + Review Screen
 
