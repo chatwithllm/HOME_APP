@@ -154,13 +154,21 @@ export default async function ExportPage({
           </ul>
         </SectionCard>
 
-        <SectionCard title="Navigation" description="Admin Quality is still the nearest sensible control room.">
-          <Link
-            href="/service-dashboard/admin-quality"
-            className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
-          >
-            Back to Admin Quality
-          </Link>
+        <SectionCard title="Navigation" description="Admin Quality and Automation are the nearest sensible control rooms.">
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/service-dashboard/admin-quality"
+              className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+            >
+              Back to Admin Quality
+            </Link>
+            <Link
+              href="/service-dashboard/automation"
+              className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
+            >
+              Automation & Integrations
+            </Link>
+          </div>
         </SectionCard>
       </section>
     </AppShell>

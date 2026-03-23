@@ -1150,11 +1150,39 @@ Implementation notes:
 - Merchant profiles are now visible and editable in a form that can actually influence future shopping behavior instead of serving as decorative metadata
 - The next natural follow-on is Phase 28 — Automation / Integrations Follow-through
 
+## Phase 28 — Automation / Integrations Follow-through
+
+Status: Completed locally and ready for branch push.
+
+Objective:
+Turn the app’s recommendation, receipt-action, export, and quality surfaces into something that leaves an operational trail instead of acting like work happened by magic.
+
+What was built:
+- Added `lib/shopping-automation.ts` to record and summarize shopping automation events
+- Added `app/api/automation/summary/route.ts` for operational summary access
+- Added `app/service-dashboard/automation/page.tsx` as a new automation/integrations operator surface
+- Updated `app/api/shopping-recommendations/plan/route.ts` to record recommendation-plan and recommendation-merge automation events
+- Updated `app/api/shopping-recommendations/ignore/route.ts` to record ignore events
+- Updated `app/api/receipt-item/action/route.ts` to record create, merge, and duplicate-block automation outcomes
+- Updated admin-quality and export pages to link into the new automation dashboard
+
+Validation completed:
+- `npm run lint` ✅
+- `npm run build` ✅
+- `npm run db:test` ✅
+
+Implementation notes:
+- Phase 28 uses the existing `shopping_sync_events` table instead of inventing a new automation ledger
+- Automation follow-through is now observable from the UI instead of being hidden inside API side effects
+- Recommendation actions, receipt-item actions, and ignore paths now leave operational breadcrumbs that can be reviewed later
+- The current roadmap is effectively complete after this phase; future work should start as a fresh follow-on roadmap if needed
+
 ## Notes for future restart
 - The original Phase 11–22 roadmap is complete and merged to `main`.
 - Phase 23 is complete and merged to `main`.
 - Phase 24 is complete and merged to `main`.
 - Phase 25 is complete and merged to `main`.
 - Phase 26 is complete and merged to `main`.
-- Phase 27 is complete locally and pending branch push / merge decision.
-- The most obvious immediate next step is **Phase 28 — Automation / Integrations Follow-through**.
+- Phase 27 is complete and merged to `main`.
+- Phase 28 is complete locally and pending branch push / merge decision.
+- No further phase is currently defined after Phase 28.
