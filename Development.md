@@ -11,21 +11,19 @@
 - **Current dev OCR tools:** local `tesseract` + `pdftotext`
 
 ### Merged to `main`
-- Phase 11–30 are complete and merged.
-- That includes upload UI and local OCR extraction.
+- Phase 11–32 are complete and merged.
+- That includes upload UI, Blob-backed storage, OCR extraction, structured draft review, and save flow.
 
 ### Local work in progress
-- **Phase 31 — Structured Receipt Parsing + Review Screen** *(wrapped on branch; awaiting merge)*
-- **Phase 32 — Blob-backed Upload Storage for Vercel** *(wrapped on branch; awaiting merge)*
-- **Phase 33 — OCR Abstraction + Remote Worker Path** *(completed locally; not yet wrapped/branched/pushed)*
+- **Phase 33 — OCR Abstraction + Remote Worker Path** *(implemented locally; not yet wrapped/branched/pushed)*
 
-These have local implementation work and passing local validation, but are **not yet fully merged to `main`** in the current state captured by the restart guide.
+This local work has passing validation, but is **not yet merged to `main`** in the current state captured by the restart guide.
 
 ### Immediate next priorities
 1. wrap Phase 33 cleanly
-2. continue Phase 34 final save-flow/dashboard polish
-3. continue Phase 35 retry/reprocessing hardening
-4. then reassess deployment-worker architecture if needed
+2. build/configure the OCR worker endpoint
+3. continue Phase 34 final save-flow/dashboard polish
+4. continue Phase 35 retry/reprocessing hardening
 
 ### What to read next
 - `RESTART-GUIDE.md` → complete handoff
