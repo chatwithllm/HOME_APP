@@ -10,16 +10,17 @@ export default function UploadReceiptPage() {
       description="Upload receipt images or PDFs through the web app so OCR and review have a proper front door instead of living as future apologetics."
     >
       <section className="space-y-6">
-        <SectionCard title="Upload receipt media" description="Phase 29 stores the file and returns a reusable media path. OCR comes next.">
+        <SectionCard title="Upload receipt media" description="Phase 30 adds explicit OCR extraction after upload so you can inspect raw text before any parsing flow exists.">
           <ReceiptUploadForm />
         </SectionCard>
 
-        <SectionCard title="What this phase does" description="Receipt Upload UI Foundation is intentionally narrow.">
+        <SectionCard title="What this phase does" description="Receipt Upload + OCR now covers media intake and raw text extraction.">
           <ul className="space-y-2 text-sm leading-6 text-[var(--muted)]">
             <li>- accepts image and PDF receipt files from the browser</li>
             <li>- validates size and file type before storing</li>
             <li>- stores uploaded media to a local app-managed path</li>
-            <li>- returns the saved file reference for future OCR and review flow work</li>
+            <li>- runs local OCR explicitly after upload using `tesseract` or `pdftotext`</li>
+            <li>- shows raw OCR text so the next parsing/review phase has a real input surface</li>
           </ul>
         </SectionCard>
 

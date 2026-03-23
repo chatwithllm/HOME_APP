@@ -10,17 +10,28 @@ type UploadResult = {
   size: number;
 };
 
+type OcrResult = {
+  filePath: string;
+  method: string;
+  rawText: string;
+  characterCount: number;
+  lineCount: number;
+};
+
 export function ReceiptUploadForm() {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [ocrRunning, setOcrRunning] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<UploadResult | null>(null);
+  const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
 
   async function uploadFile(target: File) {
     setUploading(true);
     setError("");
     setResult(null);
+    setOcrResult(null);
 
     try {
       const formData = new FormData();
@@ -42,6 +53,36 @@ export function ReceiptUploadForm() {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function runOcr() {
+    if (!result) {
+      return;
+    }
+
+    setOcrRunning(true);
+    setError("");
+    setOcrResult(null);
+
+    try {
+      const response = await fetch("/api/receipt-media/ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filePath: result.filePath, contentType: result.contentType }),
+      });
+
+      const data = (await response.json()) as { ok?: boolean; error?: string; ocr?: OcrResult };
+
+      if (!response.ok || !data.ok || !data.ocr) {
+        throw new Error(data.error || "OCR failed");
+      }
+
+      setOcrResult(data.ocr);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "OCR failed");
+    } finally {
+      setOcrRunning(false);
     }
   }
 
@@ -78,7 +119,7 @@ export function ReceiptUploadForm() {
         />
         <p className="text-base font-semibold text-[var(--text)]">Drop a receipt here or click to choose one</p>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Supported: JPG, PNG, WEBP, GIF, PDF · max 15 MB · this phase uploads and stores the file without OCR yet.
+          Supported: JPG, PNG, WEBP, GIF, PDF · max 15 MB · Phase 30 now adds explicit OCR after upload.
         </p>
         {file ? <p className="mt-4 text-sm font-medium text-[var(--accent-dark)]">Selected: {file.name}</p> : null}
       </label>
@@ -92,14 +133,23 @@ export function ReceiptUploadForm() {
         >
           {uploading ? "Uploading..." : "Upload receipt"}
         </button>
+        <button
+          type="button"
+          disabled={!result || ocrRunning || uploading}
+          onClick={() => void runOcr()}
+          className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {ocrRunning ? "Running OCR..." : "Run OCR"}
+        </button>
         {file ? (
           <button
             type="button"
-            disabled={uploading}
+            disabled={uploading || ocrRunning}
             onClick={() => {
               setFile(null);
               setError("");
               setResult(null);
+              setOcrResult(null);
             }}
             className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)]"
           >
@@ -118,7 +168,20 @@ export function ReceiptUploadForm() {
           <p>Stored path: {result.filePath}</p>
           <p>Content type: {result.contentType}</p>
           <p>Size: {Math.round(result.size / 1024)} KB</p>
-          <p className="mt-3 text-[var(--accent-dark)]">Next phase will attach OCR extraction and review flow to this uploaded media.</p>
+        </div>
+      ) : null}
+
+      {ocrResult ? (
+        <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]">
+          <p className="font-semibold text-[var(--text)]">OCR completed</p>
+          <p className="mt-2">Method: {ocrResult.method}</p>
+          <p>Characters: {ocrResult.characterCount}</p>
+          <p>Lines: {ocrResult.lineCount}</p>
+          <textarea
+            readOnly
+            value={ocrResult.rawText}
+            className="mt-3 min-h-[260px] w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 font-mono text-xs leading-6 text-[var(--text)]"
+          />
         </div>
       ) : null}
     </div>
