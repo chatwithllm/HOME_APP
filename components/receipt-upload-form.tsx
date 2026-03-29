@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { createInitialProcessingSteps, setStepState, type UploadProcessingStep, type UploadStepStatus } from "@/lib/receipt-processing-state";
 
 type UploadResult = {
   originalName: string;
@@ -64,6 +65,7 @@ export function ReceiptUploadForm() {
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [savedReceiptId, setSavedReceiptId] = useState<number | null>(null);
   const [processingSource, setProcessingSource] = useState<ProcessingSource>("local");
+  const [processingSteps, setProcessingSteps] = useState<Record<UploadProcessingStep, UploadStepStatus>>(createInitialProcessingSteps());
 
   async function uploadFile(target: File) {
     setUploading(true);
@@ -72,6 +74,10 @@ export function ReceiptUploadForm() {
     setOcrResult(null);
     setDraft(null);
     setSavedReceiptId(null);
+    setProcessingSteps((current) => ({
+      ...createInitialProcessingSteps(),
+      upload: { ...current.upload, step: "upload", state: "running", message: `Uploading ${target.name}` },
+    }));
 
     try {
       const formData = new FormData();
@@ -88,10 +94,14 @@ export function ReceiptUploadForm() {
         throw new Error(data.error || "Upload failed");
       }
 
-      setResult(data.media);
-      setProcessingSource(data.media.storage === "blob" ? "worker" : "local");
+      const media = data.media;
+      setResult(media);
+      setProcessingSource(media.storage === "blob" ? "worker" : "local");
+      setProcessingSteps((current) => setStepState(current, "upload", "success", `Stored via ${media.storage || "local"}`));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      const message = err instanceof Error ? err.message : "Upload failed";
+      setError(message);
+      setProcessingSteps((current) => setStepState(current, "upload", "failed", message));
     } finally {
       setUploading(false);
     }
@@ -104,6 +114,7 @@ export function ReceiptUploadForm() {
     setOcrResult(null);
     setDraft(null);
     setSavedReceiptId(null);
+    setProcessingSteps((current) => setStepState(current, "ocr", "running", `Running ${processingSource} OCR`));
 
     try {
       const response = await fetch("/api/receipt-media/ocr", {
@@ -113,9 +124,13 @@ export function ReceiptUploadForm() {
       });
       const data = (await response.json()) as { ok?: boolean; error?: string; ocr?: OcrResult };
       if (!response.ok || !data.ok || !data.ocr) throw new Error(data.error || "OCR failed");
-      setOcrResult(data.ocr);
+      const ocr = data.ocr;
+      setOcrResult(ocr);
+      setProcessingSteps((current) => setStepState(current, "ocr", "success", `${ocr.method} completed`));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "OCR failed");
+      const message = err instanceof Error ? err.message : "OCR failed";
+      setError(message);
+      setProcessingSteps((current) => setStepState(current, "ocr", "failed", message));
     } finally {
       setOcrRunning(false);
     }
@@ -127,6 +142,7 @@ export function ReceiptUploadForm() {
     setError("");
     setDraft(null);
     setSavedReceiptId(null);
+    setProcessingSteps((current) => setStepState(current, "draft", "running", "Building structured draft"));
 
     try {
       const response = await fetch("/api/receipt-media/draft", {
@@ -136,9 +152,13 @@ export function ReceiptUploadForm() {
       });
       const data = (await response.json()) as { ok?: boolean; error?: string; draft?: DraftResult };
       if (!response.ok || !data.ok || !data.draft) throw new Error(data.error || "Draft build failed");
-      setDraft(data.draft);
+      const builtDraft = data.draft;
+      setDraft(builtDraft);
+      setProcessingSteps((current) => setStepState(current, "draft", "success", `${builtDraft.items.length} items parsed`));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Draft build failed");
+      const message = err instanceof Error ? err.message : "Draft build failed";
+      setError(message);
+      setProcessingSteps((current) => setStepState(current, "draft", "failed", message));
     } finally {
       setDrafting(false);
     }
@@ -149,6 +169,7 @@ export function ReceiptUploadForm() {
     setSaving(true);
     setError("");
     setSavedReceiptId(null);
+    setProcessingSteps((current) => setStepState(current, "save", "running", "Saving reviewed receipt"));
 
     try {
       const response = await fetch("/api/receipts", {
@@ -180,8 +201,11 @@ export function ReceiptUploadForm() {
       const data = (await response.json()) as { ok?: boolean; error?: string; receipt_id?: number };
       if (!response.ok || !data.ok || !data.receipt_id) throw new Error(data.error || "Save failed");
       setSavedReceiptId(data.receipt_id);
+      setProcessingSteps((current) => setStepState(current, "save", "success", `Saved as receipt #${data.receipt_id}`));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      const message = err instanceof Error ? err.message : "Save failed";
+      setError(message);
+      setProcessingSteps((current) => setStepState(current, "save", "failed", message));
     } finally {
       setSaving(false);
     }
@@ -243,7 +267,7 @@ export function ReceiptUploadForm() {
         <button type="button" disabled={!result || ocrRunning || uploading} onClick={() => void runOcr()} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60">{ocrRunning ? "Running OCR..." : "Run OCR"}</button>
         <button type="button" disabled={!ocrResult || drafting} onClick={() => void buildDraft()} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60">{drafting ? "Building draft..." : "Build draft"}</button>
         <button type="button" disabled={!draft || saving} onClick={() => void saveDraft()} className="inline-flex rounded-[10px] border border-[var(--accent)] bg-[rgba(255,241,191,0.7)] px-4 py-2 text-sm font-semibold text-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-60">{saving ? "Saving..." : "Save reviewed receipt"}</button>
-        {file ? <button type="button" disabled={uploading || ocrRunning || drafting || saving} onClick={() => { setFile(null); setError(""); setResult(null); setOcrResult(null); setDraft(null); setSavedReceiptId(null); setProcessingSource("local"); }} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)]">Clear</button> : null}
+        {file ? <button type="button" disabled={uploading || ocrRunning || drafting || saving} onClick={() => { setFile(null); setError(""); setResult(null); setOcrResult(null); setDraft(null); setSavedReceiptId(null); setProcessingSource("local"); setProcessingSteps(createInitialProcessingSteps()); }} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)]">Clear</button> : null}
       </div>
 
       {error ? <div className="rounded-[16px] border border-[rgba(190,24,24,0.15)] bg-[rgba(254,242,242,0.9)] p-4 text-sm text-[rgb(127,29,29)]">{error}</div> : null}
@@ -269,6 +293,7 @@ export function ReceiptUploadForm() {
                 setDraft(null);
                 setSavedReceiptId(null);
                 setProcessingSource("local");
+                setProcessingSteps(createInitialProcessingSteps());
               }}
               className="inline-flex rounded-[10px] border border-[rgba(22,101,52,0.2)] bg-white px-3 py-2 text-sm font-semibold text-[rgb(21,128,61)]"
             >
@@ -277,6 +302,19 @@ export function ReceiptUploadForm() {
           </div>
         </div>
       ) : null}
+
+      <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+        <p className="font-semibold text-[var(--text)]">Processing status</p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {Object.values(processingSteps).map((step) => (
+            <div key={step.step} className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">{step.step}</p>
+              <p className="mt-2 font-semibold text-[var(--text)]">{step.state}</p>
+              {step.message ? <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{step.message}</p> : null}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {result ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">Upload completed</p><p className="mt-2">Original name: {result.originalName}</p><p>Stored name: {result.storedName}</p><p>Stored path: {result.filePath}</p><p>Storage: {result.storage || "local"}</p><p>Processing source selected: {processingSource}</p><p>Content type: {result.contentType}</p><p>Size: {Math.round(result.size / 1024)} KB</p></div> : null}
 
