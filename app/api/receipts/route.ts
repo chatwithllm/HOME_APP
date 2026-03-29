@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createDb } from "@/db/client";
 import { receiptItems, receipts } from "@/db/schema";
+import { buildReceiptStructuredMetadata } from "@/lib/receipt-processing";
 
 const numericField = z
   .union([z.number(), z.string(), z.null()])
@@ -77,6 +78,12 @@ const receiptPayloadSchema = z.object({
   rawText: z.string().optional(),
   structuredJson: z.record(z.string(), z.unknown()).optional(),
   parser: parserMetadataSchema.optional(),
+  processingSource: z.enum(["local", "worker", "openai"]).optional(),
+  processingStatus: z.enum(["uploaded", "ocr_completed", "draft_built", "reviewed", "saved", "failed"]).optional(),
+  uploadStorage: z.enum(["local", "blob"]).optional(),
+  uploadContentType: z.string().trim().min(1).optional(),
+  uploadOriginalName: z.string().trim().min(1).optional(),
+  ocrMethod: z.string().trim().min(1).optional(),
   confidence: z.record(z.string(), boundedConfidenceField).optional(),
   overallConfidence: boundedConfidenceField.optional(),
   warnings: z.array(z.string().trim().min(1)).optional(),
@@ -124,10 +131,18 @@ export async function POST(request: Request) {
       const qualityMetadata = {
         ...(payload.structuredJson ?? {}),
         ...(payload.parser ? { parser: payload.parser } : {}),
-        ...(payload.confidence ? { confidence: payload.confidence } : {}),
-        ...(payload.overallConfidence != null ? { overallConfidence: payload.overallConfidence } : {}),
-        ...(payload.warnings?.length ? { warnings: payload.warnings } : {}),
-        ...(payload.qualityFlags?.length ? { qualityFlags: payload.qualityFlags } : {}),
+        ...buildReceiptStructuredMetadata({
+          processingSource: payload.processingSource ?? "local",
+          processingStatus: payload.processingStatus ?? "saved",
+          uploadStorage: payload.uploadStorage,
+          uploadContentType: payload.uploadContentType,
+          uploadOriginalName: payload.uploadOriginalName,
+          ocrMethod: payload.ocrMethod,
+          confidence: payload.confidence,
+          overallConfidence: payload.overallConfidence ?? null,
+          warnings: payload.warnings,
+          qualityFlags: payload.qualityFlags,
+        }),
       };
 
       const insertPayload = {

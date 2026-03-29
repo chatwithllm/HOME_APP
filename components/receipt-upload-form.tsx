@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type UploadResult = {
@@ -18,6 +19,8 @@ type OcrResult = {
   characterCount: number;
   lineCount: number;
 };
+
+type ProcessingSource = "local" | "worker" | "openai";
 
 type DraftItem = {
   lineNumber: number;
@@ -60,6 +63,7 @@ export function ReceiptUploadForm() {
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [savedReceiptId, setSavedReceiptId] = useState<number | null>(null);
+  const [processingSource, setProcessingSource] = useState<ProcessingSource>("local");
 
   async function uploadFile(target: File) {
     setUploading(true);
@@ -85,6 +89,7 @@ export function ReceiptUploadForm() {
       }
 
       setResult(data.media);
+      setProcessingSource(data.media.storage === "blob" ? "worker" : "local");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -158,7 +163,13 @@ export function ReceiptUploadForm() {
           tax: draft.tax,
           total: draft.total,
           rawText: ocrResult.rawText,
-          parser: { source: "local-ocr", name: ocrResult.method, version: "phase-31" },
+          parser: { source: processingSource === "worker" ? "worker-ocr" : processingSource === "openai" ? "openai" : "local-ocr", name: ocrResult.method, version: "phase-34" },
+          processingSource,
+          processingStatus: "saved",
+          uploadStorage: result.storage || "local",
+          uploadContentType: result.contentType,
+          uploadOriginalName: result.originalName,
+          ocrMethod: ocrResult.method,
           confidence: draft.confidence,
           overallConfidence: draft.overallConfidence,
           warnings: draft.warnings,
@@ -232,13 +243,42 @@ export function ReceiptUploadForm() {
         <button type="button" disabled={!result || ocrRunning || uploading} onClick={() => void runOcr()} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60">{ocrRunning ? "Running OCR..." : "Run OCR"}</button>
         <button type="button" disabled={!ocrResult || drafting} onClick={() => void buildDraft()} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60">{drafting ? "Building draft..." : "Build draft"}</button>
         <button type="button" disabled={!draft || saving} onClick={() => void saveDraft()} className="inline-flex rounded-[10px] border border-[var(--accent)] bg-[rgba(255,241,191,0.7)] px-4 py-2 text-sm font-semibold text-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-60">{saving ? "Saving..." : "Save reviewed receipt"}</button>
-        {file ? <button type="button" disabled={uploading || ocrRunning || drafting || saving} onClick={() => { setFile(null); setError(""); setResult(null); setOcrResult(null); setDraft(null); setSavedReceiptId(null); }} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)]">Clear</button> : null}
+        {file ? <button type="button" disabled={uploading || ocrRunning || drafting || saving} onClick={() => { setFile(null); setError(""); setResult(null); setOcrResult(null); setDraft(null); setSavedReceiptId(null); setProcessingSource("local"); }} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)]">Clear</button> : null}
       </div>
 
       {error ? <div className="rounded-[16px] border border-[rgba(190,24,24,0.15)] bg-[rgba(254,242,242,0.9)] p-4 text-sm text-[rgb(127,29,29)]">{error}</div> : null}
-      {savedReceiptId ? <div className="rounded-[16px] border border-[rgba(22,101,52,0.15)] bg-[rgba(240,253,244,0.9)] p-4 text-sm text-[rgb(21,128,61)]">Receipt saved successfully. Receipt ID: {savedReceiptId}</div> : null}
+      {savedReceiptId ? (
+        <div className="rounded-[16px] border border-[rgba(22,101,52,0.15)] bg-[rgba(240,253,244,0.9)] p-4 text-sm text-[rgb(21,128,61)]">
+          <p className="font-semibold">Receipt saved successfully. Receipt ID: {savedReceiptId}</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {savedReceiptId ? (
+              <Link href={`/service-dashboard/receipts/${savedReceiptId}` as const} className="inline-flex rounded-[10px] border border-[rgba(22,101,52,0.2)] bg-white px-3 py-2 text-sm font-semibold text-[rgb(21,128,61)]">
+                Open receipt detail
+              </Link>
+            ) : null}
+            <Link href="/service-dashboard/receipts" className="inline-flex rounded-[10px] border border-[rgba(22,101,52,0.2)] bg-white px-3 py-2 text-sm font-semibold text-[rgb(21,128,61)]">
+              Go to receipts dashboard
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setFile(null);
+                setError("");
+                setResult(null);
+                setOcrResult(null);
+                setDraft(null);
+                setSavedReceiptId(null);
+                setProcessingSource("local");
+              }}
+              className="inline-flex rounded-[10px] border border-[rgba(22,101,52,0.2)] bg-white px-3 py-2 text-sm font-semibold text-[rgb(21,128,61)]"
+            >
+              Upload another receipt
+            </button>
+          </div>
+        </div>
+      ) : null}
 
-      {result ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">Upload completed</p><p className="mt-2">Original name: {result.originalName}</p><p>Stored name: {result.storedName}</p><p>Stored path: {result.filePath}</p><p>Storage: {result.storage || "local"}</p><p>Content type: {result.contentType}</p><p>Size: {Math.round(result.size / 1024)} KB</p></div> : null}
+      {result ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">Upload completed</p><p className="mt-2">Original name: {result.originalName}</p><p>Stored name: {result.storedName}</p><p>Stored path: {result.filePath}</p><p>Storage: {result.storage || "local"}</p><p>Processing source selected: {processingSource}</p><p>Content type: {result.contentType}</p><p>Size: {Math.round(result.size / 1024)} KB</p></div> : null}
 
       {ocrResult ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">OCR completed</p><p className="mt-2">Method: {ocrResult.method}</p><p>Characters: {ocrResult.characterCount}</p><p>Lines: {ocrResult.lineCount}</p><textarea readOnly value={ocrResult.rawText} className="mt-3 min-h-[220px] w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 font-mono text-xs leading-6 text-[var(--text)]" /></div> : null}
 

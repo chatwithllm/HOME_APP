@@ -197,8 +197,12 @@ If `git status` shows local modifications later, treat them as new work after th
 
 ### Immediate next build (required for production OCR on Vercel)
 #### OCR Worker Service
+Status:
+- in progress locally on branch `phase-34-ocr-worker-service`
+
 Goal:
 - provide an authenticated endpoint that can OCR uploaded receipt files outside the Vercel runtime
+- keep worker/local processing as the primary path even after OpenAI fallback is introduced
 
 Expected request:
 ```json
@@ -237,6 +241,18 @@ Goal:
 - add upload/OCR/draft/save processing states
 - enable retries and reprocessing for failed OCR/parsing
 - expose failure visibility in an operator/admin surface
+
+### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow
+Goal:
+- prefer local/worker processing first
+- if non-OpenAI processing is unavailable or fails, offer OpenAI fallback only with explicit user approval
+- record consent state in the processing flow so fallback use is auditable
+
+### Phase 37 — OpenAI Receipt Processing Fallback
+Goal:
+- add a receipt-only OpenAI processing route
+- use strict schema validation and preserve review-before-save behavior
+- keep OpenAI usage constrained to receipt-processing flows only
 
 ---
 
@@ -398,11 +414,14 @@ Open:
 
 ### Step 6: next build order
 At this stop point, the safest next move is:
-1. build/configure the OCR worker service
-2. set Vercel env to `OCR_PROVIDER=worker`
-3. test full Vercel upload → worker OCR → draft → save flow
-4. continue Phase 34 polish
-5. continue Phase 35 retry/reprocessing hardening
+1. finish and validate the OCR worker service locally
+2. deploy/configure the OCR worker service
+3. set Vercel env to `OCR_PROVIDER=worker`
+4. test full Vercel upload → worker OCR → draft → save flow
+5. continue Phase 34 polish
+6. continue Phase 35 retry/reprocessing hardening
+7. implement provider selection + explicit OpenAI fallback consent
+8. implement the receipt-only OpenAI fallback route
 
 ---
 
@@ -415,15 +434,20 @@ For every phase:
    - `npm run lint`
    - `npm run build`
    - `npm run db:test`
-4. provide explicit local testing steps
-5. create branch only after local tests pass
-6. push branch
+4. provide explicit local testing steps with enough detail for Tony to reproduce the flow locally
+5. create or confirm the phase branch
+6. push branch when appropriate
 7. update docs after completion
 8. use detailed commit message including:
    - local tests completed
    - branch clean
    - docs updated
 9. ask before merging to `main`
+10. if Tony says the phase looks good, then:
+   - confirm docs are updated
+   - confirm the phase branch to merge
+   - ask explicitly whether to merge to `main`
+   - after merge, report merge completion, what is now completed, and what the next phase is
 
 This workflow is not optional drift; it is the agreed process.
 
@@ -460,7 +484,7 @@ If coming back much later with no fresh context, the safest next move is:
 
 1. read this file completely
 2. confirm `main` already contains Phase 33
-3. build the OCR worker implementation next
+3. finish the OCR worker implementation next
 4. configure Vercel env for worker mode
 5. test the full deployed upload → OCR → draft → save path
 6. then continue with Phase 34 and 35
@@ -469,4 +493,4 @@ If coming back much later with no fresh context, the safest next move is:
 
 ## 15. One-line summary
 
-**HomeApp is now a real Vercel + Neon receipt/shopping app with upload, Blob-backed storage, OCR route, draft review, save flow, and app-side OCR worker abstraction already merged; the main unfinished production task is building and wiring the OCR worker service itself.**
+**HomeApp is now a real Vercel + Neon receipt/shopping app with upload, Blob-backed storage, OCR route, draft review, save flow, and app-side OCR worker abstraction already merged; the main unfinished production tasks are finishing/wiring the OCR worker service, polishing the final save/reliability flow, and adding explicit-consent OpenAI fallback only when local/worker processing is unavailable.**

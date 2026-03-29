@@ -15,13 +15,17 @@
 - That includes upload UI, Blob-backed storage, OCR extraction, structured draft review, save flow, and app-side OCR provider abstraction.
 
 ### Local work in progress
-- No required local WIP is part of the current baseline.
+- OCR worker service implementation is now in progress locally on branch `phase-34-ocr-worker-service`.
+- Hybrid receipt-processing plan is now documented in `HYBRID_RECEIPT_PROCESSING_PLAN.md`.
 
 ### Immediate next priorities
-1. build/configure the OCR worker endpoint
-2. set Vercel to `OCR_PROVIDER=worker`
-3. continue Phase 34 final save-flow/dashboard polish
-4. continue Phase 35 retry/reprocessing hardening
+1. finish and validate the OCR worker endpoint/service locally
+2. deploy/configure the OCR worker
+3. set Vercel to `OCR_PROVIDER=worker`
+4. continue Phase 34 final save-flow/dashboard polish
+5. continue Phase 35 retry/reprocessing hardening
+6. implement provider selection + explicit OpenAI fallback consent
+7. implement receipt-only OpenAI fallback processing
 
 ### What to read next
 - `RESTART-GUIDE.md` → complete handoff
@@ -390,13 +394,14 @@ Phase summary:
 ## Phase Execution Workflow
 
 For every phase from Phase 11 onward:
-- Create a dedicated branch for that phase.
+- Create or confirm a dedicated branch for that phase.
 - Complete the scoped work for that phase only.
 - Commit the changes with a phase-specific commit message.
 - Push the branch to git.
 - Update `Development.md` with what was completed and how it was validated.
-- Ask Tony whether to merge the phase branch into `main`.
-- After merge, ask whether to proceed to the next phase.
+- Always provide Tony explicit local testing steps with enough detail to reproduce the phase locally.
+- If Tony says the phase looks good, then explicitly ask whether to merge the phase branch into `main`.
+- After merge, report what is now completed and what the next phase is before proceeding.
 
 ## Post-Phase UX Adjustments — Dashboard Recent Receipts
 
@@ -1287,10 +1292,12 @@ Implementation notes:
 
 ## Phase 31 — Structured Receipt Parsing + Review Screen
 
+Status: Completed and merged to `main`.
+
 Goal:
 Transform OCR text into structured receipt data and give the user a review step before save.
 
-Planned work:
+Implementation summary:
 - parse OCR text into store/date/total/items
 - attach warnings and confidence signals
 - create a review screen for extracted fields and line items
@@ -1300,33 +1307,99 @@ Completion looks like:
 - uploaded receipts become editable structured drafts
 - users can review and fix before saving into the ledger
 
-## Phase 32 — Final Save Flow + Dashboard Integration
+## Phase 32 — Blob-backed Upload Storage for Vercel
+
+Status: Completed and merged to `main`.
 
 Goal:
-Connect the reviewed upload flow into the existing receipt system cleanly.
+Move receipt upload storage to a Vercel-compatible durable media path while keeping local development fallback.
 
-Planned work:
-- save the reviewed draft through the existing `/api/receipts` path
-- preserve media path, raw text, structured JSON, and item metadata
-- redirect into receipt detail/dashboard after save
-- show a clean success flow
+Implementation summary:
+- upload storage prefers Blob when configured
+- local development still works with app-managed local upload paths
+- app-side logic supports Blob-aware OCR/media retrieval
 
 Completion looks like:
-- upload → OCR → review → save works end-to-end
-- saved receipts appear in normal dashboard/admin-quality flows
+- uploaded receipts can be stored durably in production-compatible media storage
+- OCR/input flows can resolve Blob-backed media safely
 
-## Phase 33 — Upload Reliability, Retry, and Reprocessing
+## Phase 33 — OCR Abstraction + Remote Worker Path
+
+Status: Completed and merged to `main`.
 
 Goal:
-Make the upload/OCR flow operationally reliable instead of fragile.
+Decouple OCR execution from the app runtime so production can use a remote worker when Vercel cannot run local OCR binaries.
 
-Planned work:
-- track upload/OCR/parse processing states
-- retry or reprocess failed uploads
-- expose failures and stuck states in an admin/operator surface
-- improve the error recovery story for bad uploads
+Implementation summary:
+- app-side OCR provider abstraction supports `local` and `worker`
+- `OCR_PROVIDER=worker` routes OCR requests to a remote authenticated worker path
+- local development keeps using `tesseract` / `pdftotext`
 
 Completion looks like:
-- failed uploads do not vanish into sadness
-- operators can see and recover failed processing attempts
-empts
+- the app is ready to call a worker for production OCR
+- the remaining task is the worker service itself, not more app-side provider plumbing
+
+## Current implementation branch — OCR Worker Service + Phase 34 save-flow/parser improvements
+
+Status: Completed locally on branch `phase-34-ocr-worker-service`; ready for merge decision.
+
+Goal:
+Provide the missing authenticated OCR service that the already-merged app-side worker path can call in production, while also improving the upload save flow and receipt draft parsing quality.
+
+What was implemented on this branch:
+- added a local-first OCR worker server script
+- supported authenticated `POST /ocr` requests with `fileUrl` and optional `contentType`
+- fetched the remote file, ran `pdftotext` for PDFs or `tesseract` for images, and returned normalized OCR payloads
+- documented worker runtime env and local startup usage
+- improved post-save navigation in the upload flow
+- preserved processing metadata in saved receipt structured JSON
+- fixed admin-quality date rendering to avoid hydration mismatch
+- shifted receipt draft parsing strategy from one generic heuristic path toward merchant/layout-aware parsing, starting with a Walmart-specific parser plus generic fallback
+
+Validation completed locally:
+- `npm run lint` (passes with 2 pre-existing unrelated warnings in `shopping-plan/page.tsx`)
+- `npm run build`
+- `npm run db:test`
+- OCR worker smoke test against sample PDF
+- manual local upload → OCR → draft → save validation
+- manual local Walmart receipt draft validation after parser changes
+
+Completion looks like:
+- HomeApp can accept a receipt in the app and process OCR through the worker path
+- Vercel deployment has a realistic production OCR path instead of wishful thinking
+- upload/save flow is cleaner locally and Walmart-style parsing is materially more accurate than the earlier generic-only draft parser
+
+## Next roadmap after worker/reliability work
+
+### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow
+
+Goal:
+Prefer local/worker processing first, and only offer OpenAI fallback when the primary processing path is unavailable or fails.
+
+Planned work:
+- centralize provider selection and failure-routing logic
+- keep local/worker as the default primary path
+- detect when configured non-OpenAI processing is unavailable or fails
+- present explicit user consent UI before OpenAI fallback is allowed
+- record consent state for auditability
+- never silently fail over to OpenAI
+
+Completion looks like:
+- receipt processing stays local/worker-first when possible
+- users explicitly approve OpenAI fallback before it is used
+
+### Phase 37 — OpenAI Receipt Processing Fallback
+
+Goal:
+Add a receipt-only OpenAI fallback path that can process receipts when local/worker processing is not available.
+
+Planned work:
+- add OpenAI-backed receipt processing route(s)
+- constrain model usage to receipt-processing scope only
+- use strict schema validation for structured output
+- preserve review/correction before DB save
+- wire fallback into the upload flow only after user approval
+
+Completion looks like:
+- HomeApp can still process web receipts when local/worker OCR is unavailable
+- OpenAI fallback is controlled, explicit, and schema-validated rather than magical nonsense
