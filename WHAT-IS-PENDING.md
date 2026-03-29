@@ -50,9 +50,17 @@ Remaining polish after merge if desired:
 - optional receipt-detail/admin-quality display of processing source/status metadata
 
 ### Phase 35 — Upload Reliability, Retry, and Reprocessing
-- add upload/OCR/draft/save processing states
-- enable retries and reprocessing for failed OCR/parsing
-- expose failure visibility in an operator/admin surface
+Status: first implementation slice looks good locally; ready for merge decision.
+
+Completed in this branch so far:
+- added upload/OCR/draft/save processing states in the upload UI
+- made stage-level success/failure visible to the user
+- improved reset/retry awareness so users can see which stage failed before rerunning it
+
+Still planned in later Phase 35 follow-up if needed:
+- stronger reprocessing actions beyond manual reruns
+- more operator/admin-facing visibility for failed attempts
+- deeper failure/retry surfacing across the broader intake flow
 
 ### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow
 - add provider-selection rules that prefer local/worker processing first

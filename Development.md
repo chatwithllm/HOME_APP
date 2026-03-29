@@ -1369,6 +1369,31 @@ Completion looks like:
 - Vercel deployment has a realistic production OCR path instead of wishful thinking
 - upload/save flow is cleaner locally and Walmart-style parsing is materially more accurate than the earlier generic-only draft parser
 
+## Current implementation branch — Phase 35 Upload Reliability, Retry, and Reprocessing
+
+Status: first implementation slice completed locally on branch `phase-35-upload-reliability-reprocessing`; ready for merge decision.
+
+Goal:
+Add processing-state visibility, retry paths, and reprocessing support so receipt intake failures do not vanish into sadness.
+
+What was implemented on this branch so far:
+- added upload/OCR/draft/save processing states in the upload flow
+- surfaced stage-level `idle` / `running` / `success` / `failed` state directly in the UI
+- tracked failure state cleanly when upload/OCR/draft/save steps fail
+- improved reset/retry awareness so users can rerun the failed stage with better context
+- updated upload-page phase copy to reflect reliability work
+
+Validation completed locally:
+- `npm run lint` (passes with 2 pre-existing unrelated warnings in `shopping-plan/page.tsx`)
+- `npm run build`
+- `npm run db:test`
+- manual local upload-flow validation with visible processing-state updates
+
+Completion looks like for this slice:
+- receipt intake can show where processing failed
+- users can see which stage succeeded or failed before retrying
+- the upload flow is more operationally understandable than the previous all-or-nothing UX
+
 ## Next roadmap after worker/reliability work
 
 ### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow
