@@ -9,6 +9,8 @@ type DraftItem = {
     warnings: string[];
     rawLine: string;
     inferredFields: string[];
+    upc?: string;
+    itemFlag?: string;
   };
 };
 
@@ -35,6 +37,11 @@ function normalizeMoney(raw: string) {
 }
 
 function detectStoreName(lines: string[]) {
+  const walmartLine = lines.find((line) => /WAL[\*\s-]*MART|WALMART/i.test(line));
+  if (walmartLine) {
+    return "Walmart";
+  }
+
   const firstMeaningful = lines.find((line) => /[A-Za-z]/.test(line));
   return firstMeaningful ? firstMeaningful.slice(0, 80) : null;
 }
@@ -83,43 +90,196 @@ function detectTotals(lines: string[]) {
   return { total, subtotal, tax };
 }
 
-function draftItems(lines: string[]) {
-  const reserved = /(TOTAL|SUBTOTAL|TAX|CHANGE|CASH|VISA|MASTERCARD|DEBIT|CREDIT|THANK|BALANCE)/i;
+function parseWalmartItemLine(line: string) {
+  const match = line.match(/^(.+?)\s+(\d{8,14})(?:\s+([A-Z]))?\s+(-?\$?\d+[\d,]*\.\d{2})$/);
+  if (!match) {
+    return null;
+  }
 
-  return lines
-    .map((line, index) => ({ line, index: index + 1 }))
-    .filter(({ line }) => !reserved.test(line) && /\d/.test(line))
-    .map(({ line, index }) => {
-      const amountMatch = line.match(/(-?\$?\d+[\d,]*\.\d{2})\s*$/);
-      const amount = amountMatch ? normalizeMoney(amountMatch[1]) : null;
-      const description = line
-        .replace(/(-?\$?\d+[\d,]*\.\d{2})\s*$/, "")
-        .replace(/\s{2,}/g, " ")
-        .trim();
+  const description = match[1]?.replace(/\s{2,}/g, " ").trim();
+  const upc = match[2]?.trim();
+  const itemFlag = match[3]?.trim();
+  const lineTotal = normalizeMoney(match[4]);
 
-      return {
-        lineNumber: index,
-        description: description || `Line ${index}`,
-        quantity: null,
-        unitPrice: null,
-        lineTotal: amount,
-        parseMeta: {
-          confidence: {
-            description: description ? 0.82 : 0.35,
-            quantity: 0.2,
-            lineTotal: amount ? 0.88 : 0.3,
-          },
-          warnings: [
-            ...(description ? [] : ["weak_description"]),
-            ...(amount ? ["quantity_missing"] : ["amount_missing"]),
-          ],
-          rawLine: line,
-          inferredFields: ["quantity"],
+  if (!description || !lineTotal) {
+    return null;
+  }
+
+  return {
+    description,
+    quantity: null,
+    unitPrice: null,
+    lineTotal,
+    parseMeta: {
+      confidence: {
+        description: 0.96,
+        quantity: 0.2,
+        lineTotal: 0.95,
+        upc: upc ? 0.98 : 0.25,
+        itemFlag: itemFlag ? 0.92 : 0.25,
+      },
+      warnings: ["quantity_missing"],
+      rawLine: line,
+      inferredFields: ["quantity"],
+      ...(upc ? { upc } : {}),
+      ...(itemFlag ? { itemFlag } : {}),
+    },
+  } satisfies Omit<DraftItem, "lineNumber">;
+}
+
+function parseWalmartItems(lines: string[]) {
+  const excluded = [
+    /^RECEIPT\s+DETAILS$/i,
+    /^WALMART\s*>$/i,
+    /^SAVE MONEY\.\s*LIVE BETTER\.?$/i,
+    /^WAL\*MART$/i,
+    /^[A-Z]+,\s*[A-Z]{2}$/i,
+    /\bSUBTOTAL\b/i,
+    /\bTOTAL\b/i,
+    /\bTAX\b/i,
+    /\bCHANGE\b/i,
+    /\bDEBIT\b/i,
+    /\bMASTERCARD\b/i,
+    /\bITEMS?\s+SOLD\b/i,
+    /\bST#\b/i,
+    /\bOP#\b/i,
+    /\bTE#\b/i,
+    /\bTR#\b/i,
+    /\bTC#\b/i,
+    /\bMGR\.?\b/i,
+    /^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(\s+\d{1,2}:\d{2}(:\d{2})?)?$/,
+  ];
+
+  const items: DraftItem[] = [];
+
+  for (const [index, rawLine] of lines.entries()) {
+    const line = rawLine.trim();
+    if (!line || excluded.some((pattern) => pattern.test(line))) {
+      continue;
+    }
+
+    const parsed = parseWalmartItemLine(line);
+    if (!parsed) {
+      continue;
+    }
+
+    items.push({
+      lineNumber: index + 1,
+      ...parsed,
+    });
+  }
+
+  return items;
+}
+
+function isLikelyNonItemLine(line: string) {
+  const upper = line.toUpperCase();
+  const reservedPatterns = [
+    /\bTOTAL\b/,
+    /\bSUBTOTAL\b/,
+    /\bTAX\b/,
+    /\bCHANGE\b/,
+    /\bCASH\b/,
+    /\bVISA\b/,
+    /\bMASTERCARD\b/,
+    /\bDEBIT\b/,
+    /\bCREDIT\b/,
+    /\bTHANK\b/,
+    /\bBALANCE\b/,
+    /\bITEMS?\s+SOLD\b/,
+    /\bAPPROVED\b/,
+    /\bAUTH\b/,
+    /\bCARD\b/,
+    /\bAID\b/,
+    /\bTC#\b/,
+    /\bST#\b/,
+    /\bOP#\b/,
+    /\bTE#\b/,
+    /\bTR#\b/,
+    /\bTERMINAL\b/,
+    /\bCASHIER\b/,
+    /\bMGR\.?\b/,
+    /^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(\s+\d{1,2}:\d{2}(:\d{2})?)?$/,
+    /^\d{1,2}:\d{2}(:\d{2})?$/,
+    /^RECEIPT\s+DETAILS$/,
+    /^WALMART\s*>$/,
+    /^SAVE MONEY\.\s*LIVE BETTER\.?$/,
+  ];
+
+  return reservedPatterns.some((pattern) => pattern.test(upper));
+}
+
+function cleanGenericItemDescription(line: string) {
+  return line
+    .replace(/(-?\$?\d+[\d,]*\.\d{2})\s*$/, "")
+    .replace(/\b\d+\s*@\s*\d+[\d,]*\.\d{2}\b/gi, "")
+    .replace(/\b[0-9]{6,}\b/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function parseGenericItems(lines: string[]) {
+  const items: DraftItem[] = [];
+
+  for (const [index, rawLine] of lines.entries()) {
+    const line = rawLine.trim();
+    if (!line || isLikelyNonItemLine(line)) {
+      continue;
+    }
+
+    const amountMatch = line.match(/(-?\$?\d+[\d,]*\.\d{2})\s*$/);
+    const amount = amountMatch ? normalizeMoney(amountMatch[1]) : null;
+    const qtyPriceMatch = line.match(/\b(\d+)\s*@\s*(\d+[\d,]*\.\d{2})\b/i);
+    const quantity = qtyPriceMatch ? Number(qtyPriceMatch[1]) : null;
+    const unitPrice = qtyPriceMatch ? normalizeMoney(qtyPriceMatch[2]) : null;
+    const description = cleanGenericItemDescription(line);
+
+    if (!description && !amount) {
+      continue;
+    }
+
+    items.push({
+      lineNumber: index + 1,
+      description: description || `Line ${index + 1}`,
+      quantity,
+      unitPrice,
+      lineTotal: amount,
+      parseMeta: {
+        confidence: {
+          description: description ? 0.8 : 0.35,
+          quantity: quantity != null ? 0.9 : 0.2,
+          lineTotal: amount ? 0.85 : 0.3,
+          unitPrice: unitPrice ? 0.85 : 0.25,
         },
+        warnings: [
+          ...(description ? [] : ["weak_description"]),
+          ...(amount ? [] : ["amount_missing"]),
+          ...(quantity != null ? [] : ["quantity_missing"]),
+        ],
+        rawLine: line,
+        inferredFields: quantity != null ? [] : ["quantity"],
+      },
+    });
+  }
+
+  return items.slice(0, 40);
+}
+
+function buildItemDraft(lines: string[], storeName: string | null) {
+  if (storeName === "Walmart") {
+    const walmartItems = parseWalmartItems(lines);
+    if (walmartItems.length) {
+      return {
+        items: walmartItems,
+        parserName: "walmart-layout",
       };
-    })
-    .filter((item) => item.description || item.lineTotal)
-    .slice(0, 40);
+    }
+  }
+
+  return {
+    items: parseGenericItems(lines),
+    parserName: "generic-layout",
+  };
 }
 
 export function buildReceiptDraft(rawText: string): ReceiptDraft {
@@ -131,7 +291,8 @@ export function buildReceiptDraft(rawText: string): ReceiptDraft {
   const storeName = detectStoreName(lines);
   const receiptDate = detectDate(rawText);
   const { total, subtotal, tax } = detectTotals(lines);
-  const items = draftItems(lines);
+  const itemDraft = buildItemDraft(lines, storeName);
+  const items = itemDraft.items;
 
   const warnings = [
     ...(storeName ? [] : ["missing_store_name"]),
@@ -140,11 +301,16 @@ export function buildReceiptDraft(rawText: string): ReceiptDraft {
     ...(items.length ? [] : ["missing_items"]),
   ];
 
+  const qualityFlags = [
+    ...(warnings.length ? ["review_required"] : []),
+    ...(itemDraft.parserName === "generic-layout" ? ["generic_item_parser"] : []),
+  ];
+
   const confidence = {
-    storeName: storeName ? 0.82 : 0.25,
-    receiptDate: receiptDate ? 0.72 : 0.2,
-    total: total ? 0.86 : 0.25,
-    items: items.length ? 0.7 : 0.2,
+    storeName: storeName ? 0.9 : 0.25,
+    receiptDate: receiptDate ? 0.78 : 0.2,
+    total: total ? 0.9 : 0.25,
+    items: items.length ? (itemDraft.parserName === "walmart-layout" ? 0.92 : 0.7) : 0.2,
   };
 
   const overallConfidence = Object.values(confidence).reduce((sum, value) => sum + value, 0) / Object.values(confidence).length;
@@ -158,7 +324,7 @@ export function buildReceiptDraft(rawText: string): ReceiptDraft {
     currency: "USD",
     rawText,
     warnings,
-    qualityFlags: warnings.length ? ["review_required"] : [],
+    qualityFlags,
     overallConfidence: Number(overallConfidence.toFixed(2)),
     confidence,
     items,

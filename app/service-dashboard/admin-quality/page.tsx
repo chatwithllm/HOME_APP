@@ -27,11 +27,7 @@ type ReceiptAuditRow = {
 
 function formatDate(value: Date | null, fallback: Date) {
   const target = value ?? fallback;
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(target);
+  return target.toISOString().slice(0, 10);
 }
 
 function money(value: number) {

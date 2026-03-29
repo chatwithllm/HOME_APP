@@ -7,21 +7,23 @@ export default function UploadReceiptPage() {
     <AppShell
       title="Receipt Upload"
       eyebrow="Intake"
-      description="Upload receipt images or PDFs through the web app so OCR and review have a proper front door instead of living as future apologetics."
+      description="Upload receipt images or PDFs through the web app so OCR, review, and save now behave like one real intake flow instead of a set of polite suggestions."
     >
       <section className="space-y-6">
-        <SectionCard title="Upload receipt media" description="Phase 31 adds draft parsing and review after OCR so you can correct the receipt before saving it into the ledger.">
+        <SectionCard title="Upload receipt media" description="Phase 34 focuses on making upload → OCR → draft → save feel like one clean flow, with clearer post-save navigation into the rest of the app.">
           <ReceiptUploadForm />
         </SectionCard>
 
-        <SectionCard title="What this phase does" description="Receipt Upload + OCR + draft review now covers media intake, text extraction, and pre-save correction.">
+        <SectionCard title="What this phase does" description="Receipt Upload + OCR + draft review + save now covers media intake, text extraction, pre-save correction, and cleaner handoff into dashboards/detail views.">
           <ul className="space-y-2 text-sm leading-6 text-[var(--muted)]">
             <li>- accepts image and PDF receipt files from the browser</li>
             <li>- validates size and file type before storing</li>
             <li>- stores uploaded media to a local app-managed path</li>
-            <li>- runs local OCR explicitly after upload using `tesseract` or `pdftotext`</li>
+            <li>- runs OCR after upload using the selected processing source (`local` or `worker` today)</li>
             <li>- builds a structured receipt draft from OCR text</li>
             <li>- lets you review/correct fields and line items before saving</li>
+            <li>- preserves processing metadata so saved receipts carry source/status context</li>
+            <li>- gives you a cleaner post-save path into receipt detail and dashboard views</li>
           </ul>
         </SectionCard>
 
