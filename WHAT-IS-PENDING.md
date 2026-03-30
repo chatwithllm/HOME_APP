@@ -63,11 +63,18 @@ Still planned in later Phase 35 follow-up if needed:
 - deeper failure/retry surfacing across the broader intake flow
 
 ### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow
-- add provider-selection rules that prefer local/worker processing first
-- detect unavailable/failed non-OpenAI processing cleanly
-- present explicit user consent UI before any OpenAI fallback is used
-- record per-attempt or per-receipt consent state for auditability
-- do not silently fail over to OpenAI
+Status: first implementation slice looks good locally; ready for merge decision.
+
+Completed in this branch so far:
+- added provider-selection helpers that keep local/worker first by default
+- added explicit OpenAI fallback consent UI after non-OpenAI OCR failure
+- prevented silent failover to OpenAI
+- improved PDF/OCR failure feedback so empty OCR text no longer makes Build draft fail silently
+
+Still planned in later follow-up if needed:
+- actual OpenAI processing route/integration
+- deeper consent audit persistence beyond current UI session
+- richer failure routing across more than the OCR step
 
 ### Phase 37 — OpenAI Receipt Processing Fallback
 - add a receipt-only backend route for OpenAI-assisted processing

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { createInitialProcessingSteps, setStepState, type UploadProcessingStep, type UploadStepStatus } from "@/lib/receipt-processing-state";
+import { getOpenAiFallbackOffer, selectPrimaryProvider, type ReceiptProcessingProvider } from "@/lib/receipt-provider-selection";
 
 type UploadResult = {
   originalName: string;
@@ -21,7 +22,7 @@ type OcrResult = {
   lineCount: number;
 };
 
-type ProcessingSource = "local" | "worker" | "openai";
+type ProcessingSource = ReceiptProcessingProvider;
 
 type DraftItem = {
   lineNumber: number;
@@ -66,6 +67,9 @@ export function ReceiptUploadForm() {
   const [savedReceiptId, setSavedReceiptId] = useState<number | null>(null);
   const [processingSource, setProcessingSource] = useState<ProcessingSource>("local");
   const [processingSteps, setProcessingSteps] = useState<Record<UploadProcessingStep, UploadStepStatus>>(createInitialProcessingSteps());
+  const [openAiConsentRequested, setOpenAiConsentRequested] = useState(false);
+  const [openAiConsentApproved, setOpenAiConsentApproved] = useState(false);
+  const [openAiFallbackReason, setOpenAiFallbackReason] = useState<string | null>(null);
 
   async function uploadFile(target: File) {
     setUploading(true);
@@ -96,7 +100,13 @@ export function ReceiptUploadForm() {
 
       const media = data.media;
       setResult(media);
-      setProcessingSource(media.storage === "blob" ? "worker" : "local");
+      setProcessingSource(selectPrimaryProvider({
+        storage: media.storage,
+        configuredProvider: typeof window !== "undefined" ? window.localStorage.getItem("receipt-processing-provider") : null,
+      }));
+      setOpenAiConsentRequested(false);
+      setOpenAiConsentApproved(false);
+      setOpenAiFallbackReason(null);
       setProcessingSteps((current) => setStepState(current, "upload", "success", `Stored via ${media.storage || "local"}`));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed";
@@ -117,6 +127,10 @@ export function ReceiptUploadForm() {
     setProcessingSteps((current) => setStepState(current, "ocr", "running", `Running ${processingSource} OCR`));
 
     try {
+      if (processingSource === "openai" && !openAiConsentApproved) {
+        throw new Error("OpenAI fallback requires explicit approval before processing.");
+      }
+
       const response = await fetch("/api/receipt-media/ocr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,18 +140,52 @@ export function ReceiptUploadForm() {
       if (!response.ok || !data.ok || !data.ocr) throw new Error(data.error || "OCR failed");
       const ocr = data.ocr;
       setOcrResult(ocr);
-      setProcessingSteps((current) => setStepState(current, "ocr", "success", `${ocr.method} completed`));
+      const ocrMessage = ocr.rawText.trim()
+        ? `${ocr.method} completed`
+        : `${ocr.method} returned no readable text`;
+      setProcessingSteps((current) => setStepState(current, "ocr", ocr.rawText.trim() ? "success" : "failed", ocrMessage));
+      if (!ocr.rawText.trim()) {
+        setError("OCR completed but returned no readable text from this file. Try a different PDF, rerun OCR, or approve OpenAI fallback when available.");
+
+        const fallback = getOpenAiFallbackOffer({
+          failedProvider: processingSource,
+          failedMessage: "OCR returned no readable text.",
+          openAiEnabled: true,
+        });
+
+        if (fallback.available && processingSource !== "openai") {
+          setOpenAiConsentRequested(true);
+          setOpenAiFallbackReason(fallback.reason);
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "OCR failed";
       setError(message);
       setProcessingSteps((current) => setStepState(current, "ocr", "failed", message));
+
+      const fallback = getOpenAiFallbackOffer({
+        failedProvider: processingSource,
+        failedMessage: message,
+        openAiEnabled: true,
+      });
+
+      if (fallback.available && processingSource !== "openai") {
+        setOpenAiConsentRequested(true);
+        setOpenAiFallbackReason(fallback.reason);
+      }
     } finally {
       setOcrRunning(false);
     }
   }
 
   async function buildDraft() {
-    if (!ocrResult?.rawText) return;
+    if (!ocrResult?.rawText?.trim()) {
+      const message = "No OCR text is available to build a draft. Run OCR first, or retry OCR if the PDF returned empty text.";
+      setError(message);
+      setProcessingSteps((current) => setStepState(current, "draft", "failed", message));
+      return;
+    }
+
     setDrafting(true);
     setError("");
     setDraft(null);
@@ -267,10 +315,46 @@ export function ReceiptUploadForm() {
         <button type="button" disabled={!result || ocrRunning || uploading} onClick={() => void runOcr()} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60">{ocrRunning ? "Running OCR..." : "Run OCR"}</button>
         <button type="button" disabled={!ocrResult || drafting} onClick={() => void buildDraft()} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60">{drafting ? "Building draft..." : "Build draft"}</button>
         <button type="button" disabled={!draft || saving} onClick={() => void saveDraft()} className="inline-flex rounded-[10px] border border-[var(--accent)] bg-[rgba(255,241,191,0.7)] px-4 py-2 text-sm font-semibold text-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-60">{saving ? "Saving..." : "Save reviewed receipt"}</button>
-        {file ? <button type="button" disabled={uploading || ocrRunning || drafting || saving} onClick={() => { setFile(null); setError(""); setResult(null); setOcrResult(null); setDraft(null); setSavedReceiptId(null); setProcessingSource("local"); setProcessingSteps(createInitialProcessingSteps()); }} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)]">Clear</button> : null}
+        {file ? <button type="button" disabled={uploading || ocrRunning || drafting || saving} onClick={() => { setFile(null); setError(""); setResult(null); setOcrResult(null); setDraft(null); setSavedReceiptId(null); setProcessingSource("local"); setProcessingSteps(createInitialProcessingSteps()); setOpenAiConsentRequested(false); setOpenAiConsentApproved(false); setOpenAiFallbackReason(null); }} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--accent)]">Clear</button> : null}
       </div>
 
       {error ? <div className="rounded-[16px] border border-[rgba(190,24,24,0.15)] bg-[rgba(254,242,242,0.9)] p-4 text-sm text-[rgb(127,29,29)]">{error}</div> : null}
+
+      {openAiConsentRequested ? (
+        <div className="rounded-[16px] border border-[rgba(180,83,9,0.15)] bg-[rgba(255,251,235,0.95)] p-4 text-sm text-[rgb(146,64,14)]">
+          <p className="font-semibold text-[rgb(120,53,15)]">OpenAI fallback available</p>
+          <p className="mt-2 leading-6">
+            Primary receipt processing ({processingSource}) failed or is unavailable. If you approve OpenAI fallback, receipt data may be sent to OpenAI for processing.
+          </p>
+          {openAiFallbackReason ? <p className="mt-2 text-xs leading-5 text-[rgb(146,64,14)]">Reason: {openAiFallbackReason}</p> : null}
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setOpenAiConsentApproved(true);
+                setOpenAiConsentRequested(false);
+                setProcessingSource("openai");
+                setError("");
+                setProcessingSteps((current) => setStepState(current, "ocr", "idle", "OpenAI fallback approved; rerun OCR to continue."));
+              }}
+              className="inline-flex rounded-[10px] border border-[rgb(180,83,9)] bg-[rgb(180,83,9)] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Approve OpenAI fallback
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpenAiConsentRequested(false);
+                setOpenAiConsentApproved(false);
+                setOpenAiFallbackReason(null);
+              }}
+              className="inline-flex rounded-[10px] border border-[rgba(180,83,9,0.25)] bg-white px-4 py-2 text-sm font-semibold text-[rgb(146,64,14)]"
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      ) : null}
       {savedReceiptId ? (
         <div className="rounded-[16px] border border-[rgba(22,101,52,0.15)] bg-[rgba(240,253,244,0.9)] p-4 text-sm text-[rgb(21,128,61)]">
           <p className="font-semibold">Receipt saved successfully. Receipt ID: {savedReceiptId}</p>
@@ -294,6 +378,9 @@ export function ReceiptUploadForm() {
                 setSavedReceiptId(null);
                 setProcessingSource("local");
                 setProcessingSteps(createInitialProcessingSteps());
+                setOpenAiConsentRequested(false);
+                setOpenAiConsentApproved(false);
+                setOpenAiFallbackReason(null);
               }}
               className="inline-flex rounded-[10px] border border-[rgba(22,101,52,0.2)] bg-white px-3 py-2 text-sm font-semibold text-[rgb(21,128,61)]"
             >
