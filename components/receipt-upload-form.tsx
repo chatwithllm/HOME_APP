@@ -193,9 +193,16 @@ export function ReceiptUploadForm() {
     setProcessingSteps((current) => setStepState(current, "draft", "running", processingSource === "openai" ? "Building OpenAI receipt draft" : "Building structured draft"));
 
     try {
-      const endpoint = processingSource === "openai" ? "/api/receipt-media/openai-draft" : "/api/receipt-media/draft";
+      const useOpenAiVision = processingSource === "openai" && !!result && (result.contentType === "application/pdf" || result.contentType.startsWith("image/"));
+      const endpoint = processingSource === "openai"
+        ? useOpenAiVision
+          ? "/api/receipt-media/openai-vision-draft"
+          : "/api/receipt-media/openai-draft"
+        : "/api/receipt-media/draft";
       const payload = processingSource === "openai"
-        ? { rawText: ocrResult.rawText, consentApproved: openAiConsentApproved }
+        ? useOpenAiVision
+          ? { fileUrl: result.filePath, contentType: result.contentType, consentApproved: openAiConsentApproved }
+          : { rawText: ocrResult.rawText, consentApproved: openAiConsentApproved }
         : { rawText: ocrResult.rawText };
 
       const response = await fetch(endpoint, {
@@ -207,7 +214,7 @@ export function ReceiptUploadForm() {
       if (!response.ok || !data.ok || !data.draft) throw new Error(data.error || "Draft build failed");
       const builtDraft = data.draft;
       setDraft(builtDraft);
-      setProcessingSteps((current) => setStepState(current, "draft", "success", `${builtDraft.items.length} items parsed via ${processingSource}`));
+      setProcessingSteps((current) => setStepState(current, "draft", "success", `${builtDraft.items.length} items parsed via ${processingSource}${processingSource === "openai" ? " vision/text fallback" : ""}`));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Draft build failed";
       setError(message);
@@ -244,6 +251,18 @@ export function ReceiptUploadForm() {
           uploadContentType: result.contentType,
           uploadOriginalName: result.originalName,
           ocrMethod: ocrResult.method,
+          structuredJson: processingSource === "openai"
+            ? {
+                consent: {
+                  openAiApproved: openAiConsentApproved,
+                  fallbackReason: openAiFallbackReason,
+                },
+                modelProcessing: {
+                  provider: "openai",
+                  mode: result.contentType === "application/pdf" || result.contentType.startsWith("image/") ? "vision" : "text",
+                },
+              }
+            : undefined,
           confidence: draft.confidence,
           overallConfidence: draft.overallConfidence,
           warnings: draft.warnings,
