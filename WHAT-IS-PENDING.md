@@ -104,6 +104,20 @@ Still possible in later follow-up if needed:
 - admin/operator surfaces for consent/provenance visibility
 - richer run metadata or analytics for model-assisted processing
 
+### Phase 39 — Production AI Processing Configuration + Provenance UI
+Status: first implementation slice looks good locally; ready for merge decision.
+
+Completed in this branch so far:
+- surfaced processing provenance in receipt detail views
+- added clearer admin/operator visibility for model-assisted processing provenance
+- made it easier to distinguish local/worker/OpenAI processed receipts in the UI
+- aligned the product direction around backend-managed AI processing instead of imaginary worker requirements or unnecessary OAuth
+
+Still possible in later follow-up if needed:
+- dedicated admin filters for provenance/model-assisted receipts
+- production configuration health/status banners
+- richer model-assisted processing analytics
+
 ## Production deployment note
 Current `main` is ready for:
 - Vercel + Neon

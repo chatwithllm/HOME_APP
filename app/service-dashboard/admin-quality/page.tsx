@@ -23,6 +23,10 @@ type ReceiptAuditRow = {
   lowConfidenceCoreFieldCount: number;
   lowConfidenceItemCount: number;
   isLowConfidenceReceipt: boolean;
+  processingSource: string | null;
+  modelProvider: string | null;
+  modelMode: string | null;
+  openAiApproved: boolean;
 };
 
 function formatDate(value: Date | null, fallback: Date) {
@@ -71,6 +75,12 @@ async function getAuditData() {
         .map((item) => getItemParseSummary(item.metaJson))
         .filter((item) => item.lowConfidenceFields.length > 0 || item.warnings.length > 0).length;
 
+      const structured = (receipt.structuredJson as {
+        processing?: { source?: string | null };
+        modelProcessing?: { provider?: string | null; mode?: string | null };
+        consent?: { openAiApproved?: boolean };
+      } | null) ?? null;
+
       results.push({
         receiptId: receipt.id,
         storeName: receipt.storeName,
@@ -88,6 +98,10 @@ async function getAuditData() {
         lowConfidenceCoreFieldCount: receiptQuality.lowConfidenceCoreFieldCount,
         lowConfidenceItemCount,
         isLowConfidenceReceipt: receiptQuality.isLowConfidenceReceipt || lowConfidenceItemCount > 0,
+        processingSource: structured?.processing?.source || null,
+        modelProvider: structured?.modelProcessing?.provider || null,
+        modelMode: structured?.modelProcessing?.mode || null,
+        openAiApproved: Boolean(structured?.consent?.openAiApproved),
       });
     }
 
@@ -209,6 +223,12 @@ export default async function AdminQualityPage() {
                       <p className="font-semibold text-[var(--text)]">#{row.receiptId} {row.storeName || "Unknown store"}</p>
                       <p className="mt-1 text-sm text-[var(--muted)]">
                         {formatDate(row.receiptDate, row.createdAt)} · {row.warningCount} warnings · {row.qualityFlagCount} quality flags · {row.lowConfidenceCoreFieldCount} low-confidence core fields · {row.lowConfidenceItemCount} low-confidence items
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        Source: {row.processingSource || "unknown"}
+                        {row.modelProvider ? ` · Model: ${row.modelProvider}` : ""}
+                        {row.modelMode ? ` · Mode: ${row.modelMode}` : ""}
+                        {row.openAiApproved ? " · Consent approved" : ""}
                       </p>
                     </div>
                     <Link href={`/service-dashboard/receipts/${row.receiptId}`} className="inline-flex rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:border-[var(--accent)]">Open</Link>
