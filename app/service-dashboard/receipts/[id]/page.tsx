@@ -117,6 +117,24 @@ export default async function ReceiptDetailPage({
   const receiptMediaSrc = getReceiptMediaSrc(receipt.id, receipt.imagePath);
   const receiptMediaKind = getReceiptMediaKind(receipt.imagePath);
   const storeMetadata = parseStoreProfileNotes(storeProfile?.notes);
+  const processingMeta = (receipt.structuredJson as {
+    processing?: {
+      source?: string;
+      status?: string;
+      uploadStorage?: string | null;
+      uploadContentType?: string | null;
+      uploadOriginalName?: string | null;
+      ocrMethod?: string | null;
+    };
+    consent?: {
+      openAiApproved?: boolean;
+      fallbackReason?: string | null;
+    };
+    modelProcessing?: {
+      provider?: string;
+      mode?: string;
+    };
+  } | null) ?? null;
 
   return (
     <AppShell
@@ -252,6 +270,30 @@ export default async function ReceiptDetailPage({
                   ) : (
                     <p className="mt-2 text-sm leading-6 text-[var(--muted)]">No line items available yet.</p>
                   )}
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Processing provenance" description="How this receipt was processed and whether model-assisted fallback was used.">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Processing source</p>
+                  <p className="mt-2 text-base font-semibold text-[var(--text)]">{processingMeta?.processing?.source || "Unknown"}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    Status: {processingMeta?.processing?.status || "Unknown"}
+                    {processingMeta?.processing?.ocrMethod ? ` · OCR method: ${processingMeta.processing.ocrMethod}` : ""}
+                  </p>
+                </div>
+                <div className="rounded-[16px] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Model-assisted processing</p>
+                  <p className="mt-2 text-base font-semibold text-[var(--text)]">{processingMeta?.modelProcessing?.provider || "Not recorded"}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    Mode: {processingMeta?.modelProcessing?.mode || "—"}
+                    {processingMeta?.consent?.openAiApproved ? " · Consent approved" : ""}
+                  </p>
+                  {processingMeta?.consent?.fallbackReason ? (
+                    <p className="mt-2 text-xs leading-5 text-[var(--muted)]">Fallback reason: {processingMeta.consent.fallbackReason}</p>
+                  ) : null}
                 </div>
               </div>
             </SectionCard>

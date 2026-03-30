@@ -1473,6 +1473,31 @@ Completion looks like for this slice:
 - consent/provenance of OpenAI-assisted processing is clearer and more auditable
 - saved receipts better reflect when model-assisted extraction was used
 
+## Current implementation branch — Phase 39 Production AI Processing Configuration + Provenance UI
+
+Status: first implementation slice completed locally on branch `phase-39-production-ai-config-provenance`; ready for merge decision.
+
+Goal:
+Make production receipt processing work using backend-managed provider auth and explicit user consent, without depending on an OCR worker that does not exist or forcing unnecessary per-user OAuth complexity.
+
+What was implemented on this branch so far:
+- added receipt detail UI for processing provenance
+- added clearer admin-quality provenance hints for model-assisted receipts
+- surfaced source/status/model mode/consent context from stored metadata instead of leaving it buried in raw JSON
+- aligned the roadmap and product direction around backend-managed AI processing instead of nonexistent worker assumptions or unnecessary OAuth complexity
+
+Validation completed locally:
+- `npm run lint` (passes with the same pre-existing warnings only)
+- `npm run build`
+- `npm run db:test`
+- manual local validation of receipt detail provenance UI
+- manual local validation of admin provenance visibility
+
+Completion looks like for this slice:
+- receipt detail clearly shows processing provenance
+- admin/operator surfaces can identify model-assisted receipts more easily
+- provenance is no longer buried only in stored JSON metadata
+
 ## Next roadmap after worker/reliability work
 
 ### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow
