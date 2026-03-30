@@ -1394,6 +1394,33 @@ Completion looks like for this slice:
 - users can see which stage succeeded or failed before retrying
 - the upload flow is more operationally understandable than the previous all-or-nothing UX
 
+## Current implementation branch — Phase 36 Provider Selection + Explicit OpenAI Consent Flow
+
+Status: first implementation slice completed locally on branch `phase-36-provider-selection-openai-consent`; ready for merge decision.
+
+Goal:
+Prefer local/worker processing first, and only offer OpenAI fallback when the primary processing path is unavailable or fails.
+
+What was implemented on this branch so far:
+- added provider-selection helpers for local / worker / OpenAI decision-making
+- kept local/worker as the default primary path after upload
+- added explicit OpenAI fallback consent UI when non-OpenAI OCR fails
+- prevented silent failover to OpenAI
+- improved PDF/OCR failure feedback so empty OCR text is surfaced clearly instead of making Build draft appear broken
+- reset consent/fallback state cleanly on clear/upload-another flows
+
+Validation completed locally:
+- `npm run lint` (passes with 2 pre-existing unrelated warnings in `shopping-plan/page.tsx`)
+- `npm run build`
+- `npm run db:test`
+- manual local validation of normal local/worker-first flow
+- manual local validation of PDF failure feedback / fallback behavior
+
+Completion looks like for this slice:
+- receipt processing stays local/worker-first when possible
+- users explicitly approve OpenAI fallback before it is used
+- the upload flow can explain why OpenAI is being offered instead of making surprise external calls
+
 ## Next roadmap after worker/reliability work
 
 ### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow

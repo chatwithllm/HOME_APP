@@ -127,6 +127,32 @@ function parseWalmartItemLine(line: string) {
   } satisfies Omit<DraftItem, "lineNumber">;
 }
 
+function compactPdfWrappedLines(lines: string[]) {
+  const merged: string[] = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+
+    const looksLikeWrappedContinuation =
+      /^[A-Z0-9][A-Z0-9\s\-.'&/]*$/i.test(line) &&
+      !/(-?\$?\d+[\d,]*\.\d{2})\s*$/.test(line) &&
+      !/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/.test(line) &&
+      merged.length > 0 &&
+      !/(-?\$?\d+[\d,]*\.\d{2})\s*$/.test(merged[merged.length - 1] || "");
+
+    if (looksLikeWrappedContinuation) {
+      merged[merged.length - 1] = `${merged[merged.length - 1]} ${line}`.replace(/\s{2,}/g, " ").trim();
+    } else {
+      merged.push(line);
+    }
+  }
+
+  return merged;
+}
+
 function parseWalmartItems(lines: string[]) {
   const excluded = [
     /^RECEIPT\s+DETAILS$/i,
@@ -283,10 +309,12 @@ function buildItemDraft(lines: string[], storeName: string | null) {
 }
 
 export function buildReceiptDraft(rawText: string): ReceiptDraft {
-  const lines = rawText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const lines = compactPdfWrappedLines(
+    rawText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean),
+  );
 
   const storeName = detectStoreName(lines);
   const receiptDate = detectDate(rawText);
@@ -299,6 +327,7 @@ export function buildReceiptDraft(rawText: string): ReceiptDraft {
     ...(receiptDate ? [] : ["missing_receipt_date"]),
     ...(total ? [] : ["missing_total"]),
     ...(items.length ? [] : ["missing_items"]),
+    ...(rawText.trim().length < 20 ? ["weak_ocr_text"] : []),
   ];
 
   const qualityFlags = [
