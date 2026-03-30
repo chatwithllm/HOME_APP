@@ -118,6 +118,18 @@ Still possible in later follow-up if needed:
 - production configuration health/status banners
 - richer model-assisted processing analytics
 
+### Phase 40 — Production Configuration Health + Runtime Readiness UI
+Status: first implementation slice looks good locally; ready for merge decision.
+
+Completed in this branch so far:
+- removed the bad assumption that Blob-backed uploads automatically imply worker OCR
+- updated provider selection to match the intended architecture: local first when local runtime exists, worker only when explicitly configured, OpenAI fallback otherwise
+- improved upload UI messaging so the selected processing source and reason are visible
+
+Still possible in later follow-up if needed:
+- dedicated config health banners/cards in the UI
+- explicit env/runtime readiness summaries for operators
+
 ## Production deployment note
 Current `main` is ready for:
 - Vercel + Neon

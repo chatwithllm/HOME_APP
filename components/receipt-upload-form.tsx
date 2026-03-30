@@ -100,9 +100,18 @@ export function ReceiptUploadForm() {
 
       const media = data.media;
       setResult(media);
+      const configuredProvider = typeof window !== "undefined" ? window.localStorage.getItem("receipt-processing-provider") : null;
+      const isLocalRuntime = typeof window !== "undefined"
+        ? ["localhost", "127.0.0.1"].includes(window.location.hostname)
+        : false;
+      const workerConfigured = typeof window !== "undefined"
+        ? window.localStorage.getItem("receipt-worker-configured") === "true"
+        : false;
+
       setProcessingSource(selectPrimaryProvider({
-        storage: media.storage,
-        configuredProvider: typeof window !== "undefined" ? window.localStorage.getItem("receipt-processing-provider") : null,
+        configuredProvider,
+        runtimeEnvironment: isLocalRuntime ? "local" : "production",
+        workerConfigured,
       }));
       setOpenAiConsentRequested(false);
       setOpenAiConsentApproved(false);
@@ -427,7 +436,7 @@ export function ReceiptUploadForm() {
         </div>
       </div>
 
-      {result ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">Upload completed</p><p className="mt-2">Original name: {result.originalName}</p><p>Stored name: {result.storedName}</p><p>Stored path: {result.filePath}</p><p>Storage: {result.storage || "local"}</p><p>Processing source selected: {processingSource}</p><p>Content type: {result.contentType}</p><p>Size: {Math.round(result.size / 1024)} KB</p></div> : null}
+      {result ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">Upload completed</p><p className="mt-2">Original name: {result.originalName}</p><p>Stored name: {result.storedName}</p><p>Stored path: {result.filePath}</p><p>Storage: {result.storage || "local"}</p><p>Processing source selected: {processingSource}</p><p>{processingSource === "local" ? "Local/dev OCR is preferred in this environment." : processingSource === "worker" ? "A configured OCR worker is available for this environment." : "OpenAI fallback is selected because local/worker OCR is not configured for this environment."}</p><p>Content type: {result.contentType}</p><p>Size: {Math.round(result.size / 1024)} KB</p></div> : null}
 
       {ocrResult ? <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted)]"><p className="font-semibold text-[var(--text)]">OCR completed</p><p className="mt-2">Method: {ocrResult.method}</p><p>Characters: {ocrResult.characterCount}</p><p>Lines: {ocrResult.lineCount}</p><textarea readOnly value={ocrResult.rawText} className="mt-3 min-h-[220px] w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3 font-mono text-xs leading-6 text-[var(--text)]" /></div> : null}
 
