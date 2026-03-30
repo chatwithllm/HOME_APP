@@ -1447,6 +1447,32 @@ Completion looks like for this slice:
 - model output is schema-validated before users review/save it
 - HomeApp gains a practical fallback path when local/worker processing is insufficient
 
+## Current implementation branch — Phase 38 OpenAI Vision Receipt Input + Consent Auditability
+
+Status: first implementation slice completed locally on branch `phase-38-openai-vision-consent-audit`; ready for merge decision.
+
+Goal:
+Improve the OpenAI fallback by supporting direct image/PDF model input where useful and by making consent/provenance tracking more explicit.
+
+What was implemented on this branch so far:
+- upgraded the OpenAI receipt helper to support both OCR-text and direct vision input
+- added `/api/receipt-media/openai-vision-draft`
+- wired direct image/PDF OpenAI fallback into the upload flow after explicit approval
+- improved saved receipt provenance metadata for OpenAI-assisted processing
+- improved consent/fallback metadata capture during OpenAI-assisted save flow
+- updated OpenAI env documentation to reflect vision fallback usage
+
+Validation completed locally:
+- `npm run lint` (passes with 2 pre-existing unrelated warnings in `shopping-plan/page.tsx`)
+- `npm run build`
+- `npm run db:test`
+- manual local validation of direct image/PDF OpenAI fallback flow
+
+Completion looks like for this slice:
+- OpenAI fallback is not limited to OCR text only
+- consent/provenance of OpenAI-assisted processing is clearer and more auditable
+- saved receipts better reflect when model-assisted extraction was used
+
 ## Next roadmap after worker/reliability work
 
 ### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow

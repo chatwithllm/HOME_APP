@@ -91,6 +91,19 @@ Still possible in later follow-up if needed:
 - richer consent audit persistence
 - deeper model metadata capture in saved receipt records
 
+### Phase 38 — OpenAI Vision Receipt Input + Consent Auditability
+Status: first implementation slice looks good locally; ready for merge decision.
+
+Completed in this branch so far:
+- added direct image/PDF-to-OpenAI vision fallback route
+- upgraded OpenAI receipt helper to support text and vision modes
+- improved saved receipt provenance metadata for OpenAI-assisted processing
+- improved consent/fallback metadata captured during OpenAI-assisted save flow
+
+Still possible in later follow-up if needed:
+- admin/operator surfaces for consent/provenance visibility
+- richer run metadata or analytics for model-assisted processing
+
 ## Production deployment note
 Current `main` is ready for:
 - Vercel + Neon
