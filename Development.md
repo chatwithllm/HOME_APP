@@ -1498,6 +1498,30 @@ Completion looks like for this slice:
 - admin/operator surfaces can identify model-assisted receipts more easily
 - provenance is no longer buried only in stored JSON metadata
 
+## Current implementation branch — Phase 40 Production Configuration Health + Runtime Readiness UI
+
+Status: first implementation slice completed locally on branch `phase-40-production-config-health-ui`; ready for merge decision.
+
+Goal:
+Make production readiness visible in the UI so it is obvious whether receipt processing is configured to work in the current environment.
+
+What was implemented on this branch so far:
+- removed the bad assumption that Blob-backed uploads automatically imply worker OCR
+- updated provider selection to match the intended architecture: local first in local runtime, worker only when explicitly configured, OpenAI fallback otherwise
+- improved upload UI messaging so the selected processing source and reason are visible
+- reduced mystery around why production receipt processing was trying to use worker mode without worker config
+
+Validation completed locally:
+- `npm run lint` (passes with the same pre-existing warnings only)
+- `npm run build`
+- `npm run db:test`
+- manual local validation of provider selection and upload source messaging
+
+Completion looks like for this slice:
+- production no longer auto-assumes worker OCR just because uploads are Blob-backed
+- the selected processing path is easier to understand in the UI
+- production/runtime behavior better matches the intended architecture
+
 ## Next roadmap after worker/reliability work
 
 ### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow

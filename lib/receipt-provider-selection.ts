@@ -6,12 +6,13 @@ export type ReceiptFallbackOffer = {
 };
 
 export function selectPrimaryProvider(args: {
-  storage?: "local" | "blob";
   configuredProvider?: string | null;
+  runtimeEnvironment?: "local" | "production";
+  workerConfigured?: boolean;
 }) {
   const configured = args.configuredProvider?.trim();
 
-  if (configured === "worker") {
+  if (configured === "worker" && args.workerConfigured) {
     return "worker" satisfies ReceiptProcessingProvider;
   }
 
@@ -23,7 +24,15 @@ export function selectPrimaryProvider(args: {
     return "openai" satisfies ReceiptProcessingProvider;
   }
 
-  return args.storage === "blob" ? "worker" : "local";
+  if (args.runtimeEnvironment === "local") {
+    return "local" satisfies ReceiptProcessingProvider;
+  }
+
+  if (args.workerConfigured) {
+    return "worker" satisfies ReceiptProcessingProvider;
+  }
+
+  return "openai" satisfies ReceiptProcessingProvider;
 }
 
 export function getOpenAiFallbackOffer(args: {
