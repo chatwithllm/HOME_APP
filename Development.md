@@ -1421,6 +1421,32 @@ Completion looks like for this slice:
 - users explicitly approve OpenAI fallback before it is used
 - the upload flow can explain why OpenAI is being offered instead of making surprise external calls
 
+## Current implementation branch — Phase 37 OpenAI Receipt Processing Fallback
+
+Status: first implementation slice completed locally on branch `phase-37-openai-receipt-fallback`; ready for merge decision.
+
+Goal:
+Implement the actual OpenAI-backed receipt processing path that Phase 36 prepared for.
+
+What was implemented on this branch so far:
+- added a receipt-only OpenAI processing helper using direct API fetch
+- added schema-validated OpenAI draft extraction from OCR text
+- added `/api/receipt-media/openai-draft` route
+- wired approved OpenAI fallback into the upload flow after explicit consent
+- preserved review/correction before final DB save
+- documented `OPENAI_API_KEY` and `OPENAI_RECEIPT_MODEL` in `.env.example`
+
+Validation completed locally:
+- `npm run lint` (passes with 2 pre-existing unrelated warnings in `shopping-plan/page.tsx`)
+- `npm run build`
+- `npm run db:test`
+- manual local validation of OpenAI-backed draft flow after explicit approval
+
+Completion looks like for this slice:
+- approved OpenAI fallback can actually process a receipt instead of just being offered
+- model output is schema-validated before users review/save it
+- HomeApp gains a practical fallback path when local/worker processing is insufficient
+
 ## Next roadmap after worker/reliability work
 
 ### Phase 36 — Provider Selection + Explicit OpenAI Consent Flow
