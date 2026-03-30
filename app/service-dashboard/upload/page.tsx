@@ -26,6 +26,7 @@ export default function UploadReceiptPage() {
             <li>- shows upload/OCR/draft/save status directly in the UI</li>
             <li>- makes it easier to see which stage failed before retrying</li>
             <li>- prepares for explicit OpenAI fallback consent instead of silent failover</li>
+            <li>- supports an OpenAI-backed draft path after explicit user approval</li>
             <li>- gives you a cleaner post-save path into receipt detail and dashboard views</li>
           </ul>
         </SectionCard>

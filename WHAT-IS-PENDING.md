@@ -77,11 +77,19 @@ Still planned in later follow-up if needed:
 - richer failure routing across more than the OCR step
 
 ### Phase 37 — OpenAI Receipt Processing Fallback
-- add a receipt-only backend route for OpenAI-assisted processing
-- support schema-validated receipt extraction from uploaded file or OCR text
-- keep review/correction before DB save
-- limit model usage to receipt-processing scope only
-- wire OpenAI fallback into the upload flow only after explicit user approval
+Status: first implementation slice looks good locally; ready for merge decision.
+
+Completed in this branch so far:
+- added a receipt-only OpenAI draft route
+- added schema-validated OpenAI receipt extraction from OCR text
+- wired approved OpenAI fallback into the upload flow after explicit consent
+- preserved review/correction before DB save
+- documented OpenAI fallback env configuration
+
+Still possible in later follow-up if needed:
+- direct image/PDF-to-OpenAI vision path
+- richer consent audit persistence
+- deeper model metadata capture in saved receipt records
 
 ## Production deployment note
 Current `main` is ready for:

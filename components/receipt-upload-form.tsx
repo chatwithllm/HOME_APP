@@ -190,19 +190,24 @@ export function ReceiptUploadForm() {
     setError("");
     setDraft(null);
     setSavedReceiptId(null);
-    setProcessingSteps((current) => setStepState(current, "draft", "running", "Building structured draft"));
+    setProcessingSteps((current) => setStepState(current, "draft", "running", processingSource === "openai" ? "Building OpenAI receipt draft" : "Building structured draft"));
 
     try {
-      const response = await fetch("/api/receipt-media/draft", {
+      const endpoint = processingSource === "openai" ? "/api/receipt-media/openai-draft" : "/api/receipt-media/draft";
+      const payload = processingSource === "openai"
+        ? { rawText: ocrResult.rawText, consentApproved: openAiConsentApproved }
+        : { rawText: ocrResult.rawText };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText: ocrResult.rawText }),
+        body: JSON.stringify(payload),
       });
       const data = (await response.json()) as { ok?: boolean; error?: string; draft?: DraftResult };
       if (!response.ok || !data.ok || !data.draft) throw new Error(data.error || "Draft build failed");
       const builtDraft = data.draft;
       setDraft(builtDraft);
-      setProcessingSteps((current) => setStepState(current, "draft", "success", `${builtDraft.items.length} items parsed`));
+      setProcessingSteps((current) => setStepState(current, "draft", "success", `${builtDraft.items.length} items parsed via ${processingSource}`));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Draft build failed";
       setError(message);
